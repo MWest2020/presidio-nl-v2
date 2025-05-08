@@ -1,0 +1,6 @@
+Metadata-Version: 2.1
+Name: presidio-nl
+Version: 0.1
+Requires-Dist: presidio-analyzer
+Requires-Dist: spacy
+Requires-Dist: click

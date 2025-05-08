@@ -1,0 +1,15 @@
+README.md
+setup.py
+app/__init__.py
+app/anonymizer/__init__.py
+app/anonymizer/engine.py
+app/anonymizer/recognizers/__init__.py
+app/api/__init__.py
+app/cli/__init__.py
+app/nlp/__init__.py
+presidio_nl.egg-info/PKG-INFO
+presidio_nl.egg-info/SOURCES.txt
+presidio_nl.egg-info/dependency_links.txt
+presidio_nl.egg-info/entry_points.txt
+presidio_nl.egg-info/requires.txt
+presidio_nl.egg-info/top_level.txt
