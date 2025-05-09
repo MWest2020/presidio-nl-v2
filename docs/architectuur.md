@@ -1,6 +1,7 @@
 # Architectuur: Modulaire Presidio-NL
 
 ## Overzicht
+
 De applicatie bestaat uit een API (FastAPI) en CLI voor tekst-anonimisering, waarbij het onderliggende taalmodel (NLP-engine) eenvoudig verwisselbaar is. De architectuur is zo opgezet dat SpaCy als standaardmodel wordt gebruikt, maar dat andere modellen (zoals HuggingFace transformers) eenvoudig kunnen worden toegevoegd via een abstractielaag en configuratie.
 
 ## Componenten
@@ -11,6 +12,16 @@ De applicatie bestaat uit een API (FastAPI) en CLI voor tekst-anonimisering, waa
 - **Custom recognizers:** Eigen recognizers voor Nederlandse PII (zoals BSN, IBAN, etc.).
 - **Configuratie:** YAML-bestanden bepalen welk model en welke recognizers geladen worden.
 - **Docker:** Containerisatie voor eenvoudige deployment en reproduceerbaarheid.
+
+## NER flow
+
+Flow diagram van de NER (Named Entity Recognition) processen in de applicatie:
+
+SpaCy only: \
+![NER with SpaCy flow diagram](assets/NER_SpaCy.png)
+
+SpaCy plus transformers: \
+![NER with Spacy + Transformers flow diagram](assets/NER_transformers.png)
 
 ## Modelkeuze
 
@@ -24,6 +35,7 @@ De applicatie bestaat uit een API (FastAPI) en CLI voor tekst-anonimisering, waa
 - Nieuwe recognizers kunnen als losse Python-modules worden toegevoegd en via config of code worden geregistreerd.
 
 ## Voordelen
+
 - **Flexibel:** Snel wisselen tussen modellen zonder codewijzigingen.
 - **Herbruikbaar:** Zelfde API voor alle modellen.
 - **Onderhoudbaar:** Duidelijke scheiding tussen infrastructuur, logica en modelkeuze.
