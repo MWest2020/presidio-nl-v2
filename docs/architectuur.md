@@ -28,6 +28,9 @@ SpaCy plus transformers: \
 - De keuze van het NLP-model gebeurt via een configuratiebestand (`conf/spacy.yaml`, `conf/transformers.yaml`, ...).
 - Bij opstarten leest de applicatie deze config en laadt de juiste NLP-engine.
 - De rest van de applicatie (API, anonymizer) gebruikt alleen de abstracte interface en is onafhankelijk van het gekozen model.
+OPTIES:
+- [NER Dutch](https://huggingface.co/flair/ner-dutch) (500GB)
+- [NER Dutch Large](https://huggingface.co/flair/ner-dutch-large/tree/main) (2.2GB)
 
 ## Uitbreidbaarheid
 
