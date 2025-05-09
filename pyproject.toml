@@ -5,7 +5,9 @@ description = "Dutch Presidio-based Anonimyzer"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "fastapi[all]>=0.115.12",
     "presidio-analyzer>=2.2.358",
+    "transformers>=4.51.3",
 ]
 
 [tool.ruff]
