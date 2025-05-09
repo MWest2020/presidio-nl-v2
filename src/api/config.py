@@ -16,7 +16,7 @@ class Settings:
     ]
     DEFAULT_LANGUAGE = "nl"
     DEFAULT_NLP_ENGINE = "spacy"
-    DEFAULT_SPACY_MODEL = "nl_core_news_md"
+    DEFAULT_SPACY_MODEL = "nl_core_news_lg"
 
 
 settings: Settings = Settings()
