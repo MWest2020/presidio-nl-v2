@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -24,6 +24,13 @@ app.add_middleware(
 )
 
 analyzer = ModularTextAnalyzer()
+
+SUPPORTED_ENTITIES = ["PERSON", "LOCATION", "PHONE_NUMBER", "EMAIL", "IBAN"]
+
+
+@app.get("/entities")
+def get_supported_entities():
+    return {"supported_entities": SUPPORTED_ENTITIES}
 
 
 class AnalyzeRequest(BaseModel):
@@ -59,7 +66,12 @@ def ping() -> dict[str, str]:
 
 @app.post("/analyze", response_model=AnalyzeResponse)
 def analyze_text(request: AnalyzeRequest) -> AnalyzeResponse:
-    results = analyzer.analyze_text(request.text, request.entities, request.language)
+    try:
+        results = analyzer.analyze_text(
+            request.text, request.entities, request.language
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     entities_found = [
         EntityResult(
             entity_type=ent["entity_type"],
@@ -75,7 +87,10 @@ def analyze_text(request: AnalyzeRequest) -> AnalyzeResponse:
 
 @app.post("/anonymize", response_model=AnonymizeResponse)
 def anonymize_text(request: AnalyzeRequest) -> AnonymizeResponse:
-    anonymized = analyzer.anonymize_text(
-        request.text, request.entities, request.language
-    )
+    try:
+        anonymized = analyzer.anonymize_text(
+            request.text, request.entities, request.language
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     return AnonymizeResponse(text=request.text, anonymized=anonymized)
