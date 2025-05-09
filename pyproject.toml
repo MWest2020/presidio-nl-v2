@@ -10,6 +10,7 @@ dependencies = [
     "transformers>=4.51.3",
     "nl_core_news_md",
     "torch>=2.7.0",
+    "spacy>=3.0.0",
 ]
 
 [tool.uv.sources]

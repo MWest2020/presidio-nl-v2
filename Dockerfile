@@ -1,25 +1,30 @@
-FROM python:3.12-slim
+FROM python:3.12.10-slim-bookworm
 
-# Systeem dependencies voor spaCy en presidio
-RUN apt-get update && apt-get install -y gcc && rm -rf /var/lib/apt/lists/*
+# use the latest version of uv from the official repository
+COPY --from=ghcr.io/astral-sh/uv:0.7.3 /uv /uvx /bin/
+
+# RUN apt-get update && apt-get install -y build-essential
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd -r presidio && useradd --no-log-init -r -g presidio presidio
 
 WORKDIR /app
 
-# Kopieer alleen dependency files eerst voor betere caching
 COPY pyproject.toml uv.lock ./
 
-# Installeer uv
-RUN pip install uv
+# Geef schrijfrechten aan presidio user op /app en uv.lock
+RUN chmod -R a+w /app
 
-# Installeer alle dependencies exact zoals gelocked
-RUN uv pip install --system --no-deps .
+USER presidio
 
-# Kopieer de rest van de code
-COPY . .
+RUN uv sync --frozen --no-dev --no-cache
 
-# Download spaCy model (indien nodig)
-RUN python -m spacy download nl_core_news_md
+COPY src/api ./src/api
 
-EXPOSE 6666
+COPY api.py ./
 
-CMD ["uvicorn", "app.api.app:app", "--host", "0.0.0.0", "--port", "6666"] 
+EXPOSE 8080
+
+CMD ["uv", "run", "--no-dev", "--no-cache", "api.py", "--host=0.0.0.0", "--workers=2", "--env=production", "--port=8080"]
