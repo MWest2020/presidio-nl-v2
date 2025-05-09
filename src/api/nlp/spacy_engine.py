@@ -1,14 +1,30 @@
 import spacy
 
+from src.api.config import settings
 from src.api.nlp.base import NLPEngine
 
 
 class SpacyEngine(NLPEngine):
-    def __init__(self, model_name: str = "nl_core_news_md") -> None:
+    def __init__(self, model_name: str = settings.DEFAULT_SPACY_MODEL) -> None:
         self.model_name = model_name
-        self.nlp = spacy.load(model_name)
+        self.nlp: spacy.language.Language = spacy.load(model_name)
 
-    def analyze(self, text: str, entities: list = None, language: str = "nl") -> list:
+    def analyze(
+        self,
+        text: str,
+        entities: list = None,
+        language: str = settings.DEFAULT_LANGUAGE,
+    ) -> list:
+        """Voer analyse uit op de tekst met behulp van SpaCy.
+
+        Args:
+            text (str): de tekst die geanalyseerd moet worden.
+            entities (list, optional): de entities om terug te geven in de results. Defaults to None.
+            language (str, optional): taal om te analyseren. Defaults to settings.DEFAULT_LANGUAGE.
+
+        Returns:
+            list: een lijst van dictionaries met de resultaten van de analyse.
+        """
         doc = self.nlp(text)
         results = []
         for ent in doc.ents:
@@ -18,7 +34,7 @@ class SpacyEngine(NLPEngine):
                         "entity_type": ent.label_,
                         "start": ent.start_char,
                         "end": ent.end_char,
-                        "score": 0.85,  # SpaCy geeft geen scores, default
+                        "score": "",  # SpaCy geeft geen scores, default lege string
                         "text": ent.text,
                     }
                 )

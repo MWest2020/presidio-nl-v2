@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import List, Optional
 
 from presidio_analyzer import AnalyzerEngine, RecognizerRegistry, RecognizerResult
 from presidio_analyzer.nlp_engine import NlpEngineProvider
@@ -17,17 +17,27 @@ from src.api.nlp.spacy_engine import SpacyEngine
 class ModularTextAnalyzer:
     """Modulaire analyzer-klasse voor Nederlandse tekst."""
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        model_name: Optional[str] = None,
+        nlp_engine: str = settings.DEFAULT_NLP_ENGINE,
+    ) -> None:
+        if model_name is None:
+            model_name = (
+                settings.DEFAULT_SPACY_MODEL
+                if nlp_engine == "spacy"
+                else settings.DEFAULT_TRANSFORMERS_MODEL
+            )
         self.nlp_engine: SpacyEngine = load_nlp_engine(
-            config_dict={"nlp_engine": settings.DEFAULT_NLP_ENGINE}
+            config_dict={"nlp_engine": nlp_engine, "model_name": model_name}
         )
 
         spacy_config = {
-            "nlp_engine_name": settings.DEFAULT_NLP_ENGINE,
+            "nlp_engine_name": nlp_engine,
             "models": [
                 {
                     "lang_code": settings.DEFAULT_LANGUAGE,
-                    "model_name": settings.DEFAULT_SPACY_MODEL,
+                    "model_name": model_name,
                 }
             ],
         }
@@ -81,6 +91,8 @@ class ModularTextAnalyzer:
         pattern_results: List[RecognizerResult] = self.analyzer.analyze(
             text=text, entities=entities, language=language
         )
+        print(f"pattern_results: {pattern_results}")
+
         # Combineer resultaten (dedupliceer op start-end-entity_type)
         all_results = nlp_results + [
             {
