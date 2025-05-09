@@ -1,10 +1,3 @@
-Dank je, dat maakt het helder. Ik ga een README ontwerpen voor een modulair systeem dat Presidio gebruikt, waarbij je met Docker verschillende images kunt bouwen die elk een ander Nederlands taalmodel bevatten (zoals spaCy of GroNLP BERT).
-
-De README zal het projectdoel, systeemarchitectuur, configuratie, voorbeeldgebruik, en instructies voor het bouwen en wisselen van modellen omvatten, gericht op samenwerking in een tool als Cursor.
-
-Ik kom bij je terug zodra het klaar is.
-
-
 # Modular Dutch PII Detection Service (Presidio-Based)
 
 A modular **Personally Identifiable Information (PII)** detection service for the Dutch language, built with [Microsoft Presidio](https://github.com/microsoft/presidio) as the core detection framework. It runs in a Docker container with a FastAPI backend and allows easy swapping of the underlying Natural Language Processing (NLP) model (e.g., spaCy or Hugging Face transformer) without changing the API logic. This README provides an overview of the project, its architecture, usage, and guidance for customization.
@@ -305,15 +298,17 @@ We hope this tool proves useful for your data anonymization and privacy efforts.
 
 ## API testen via localhost
 
-Na het starten van de API met:
+Installeer lokal de dependencies en run met `uv`:
 
 ```bash
-uvicorn app.api.app:app --reload
+uv venv
+uv sync
+uv run api.py
 ```
 
 kun je de interactieve documentatie openen in je browser:
 
-```
+```url
 http://localhost:8000/docs
 ```
 

@@ -1,2 +1,0 @@
-[console_scripts]
-presidio-nl-cli = app.cli.main:analyze
