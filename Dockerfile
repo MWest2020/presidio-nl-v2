@@ -3,11 +3,6 @@ FROM python:3.12.10-slim-bookworm
 # use the latest version of uv from the official repository
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# RUN apt-get update && apt-get install -y build-essential
-RUN apt-get update && apt-get install -y \
-    ffmpeg \
-    && rm -rf /var/lib/apt/lists/*
-
 RUN groupadd -r presidio && useradd --no-log-init -r -g presidio presidio
 USER presidio
     

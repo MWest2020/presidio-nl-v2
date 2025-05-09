@@ -40,18 +40,7 @@ def setup_logging() -> None:
                 "handlers": ["file", "stream"],
             },
             "loggers": {
-                "pydub.converter": {
-                    "level": "WARNING",
-                    "propagate": False,
-                },
-                "websockets.client": {
-                    "level": "WARNING",
-                    "propagate": False,
-                },
-                "httpcore.http11": {
-                    "level": "WARNING",
-                    "propagate": False,
-                },
+                # "add custom loggers to disable here!"
             },
         }
     )
