@@ -1,7 +1,5 @@
 from typing import Union, overload
 
-import yaml
-
 from src.api.nlp.spacy_engine import SpacyEngine
 from src.api.nlp.transformers_engine import TransformersEngine
 

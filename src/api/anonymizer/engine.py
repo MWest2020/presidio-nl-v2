@@ -1,6 +1,7 @@
 import logging
+from typing import List
 
-from presidio_analyzer import AnalyzerEngine, RecognizerRegistry
+from presidio_analyzer import AnalyzerEngine, RecognizerRegistry, RecognizerResult
 from presidio_analyzer.nlp_engine import NlpEngineProvider
 
 from src.api.anonymizer.recognizers.patterns import (
@@ -8,19 +9,9 @@ from src.api.anonymizer.recognizers.patterns import (
     DutchIBANRecognizer,
     DutchPhoneNumberRecognizer,
 )
+from src.api.config import settings
 from src.api.nlp.loader import load_nlp_engine
 from src.api.nlp.spacy_engine import SpacyEngine
-
-DEFAULT_ENTITIES = [
-    "PERSON",
-    "LOCATION",
-    "PHONE_NUMBER",
-    "EMAIL",
-    "ORGANIZATION",
-    "IBAN",
-    "ADDRESS",
-]
-DEFAULT_LANGUAGE = "nl"
 
 
 class ModularTextAnalyzer:
@@ -28,19 +19,25 @@ class ModularTextAnalyzer:
 
     def __init__(self) -> None:
         self.nlp_engine: SpacyEngine = load_nlp_engine(
-            config_dict={"nlp_engine": "spacy"}
+            config_dict={"nlp_engine": settings.DEFAULT_NLP_ENGINE}
         )
 
         spacy_config = {
-            "nlp_engine_name": "spacy",
-            "models": [{"lang_code": "nl", "model_name": "nl_core_news_md"}],
+            "nlp_engine_name": settings.DEFAULT_NLP_ENGINE,
+            "models": [
+                {
+                    "lang_code": settings.DEFAULT_LANGUAGE,
+                    "model_name": settings.DEFAULT_SPACY_MODEL,
+                }
+            ],
         }
 
         spacy_provider = NlpEngineProvider(nlp_configuration=spacy_config)
         presidio_spacy_engine = spacy_provider.create_engine()
 
+        # reuse the recognizer registry for the analyzer engine
         registry = RecognizerRegistry()
-        registry.supported_languages = ["nl"]
+        registry.supported_languages = [settings.DEFAULT_LANGUAGE]
 
         recognizers_to_add = [
             DutchPhoneNumberRecognizer(),
@@ -54,7 +51,7 @@ class ModularTextAnalyzer:
         self.analyzer = AnalyzerEngine(
             nlp_engine=presidio_spacy_engine,
             registry=registry,
-            supported_languages=["nl"],
+            supported_languages=registry.supported_languages,
         )
         logging.debug(
             f"ModularTextAnalyzer is initialized with {len(recognizers_to_add)} recognizers, {spacy_config=}"
@@ -63,8 +60,8 @@ class ModularTextAnalyzer:
     def analyze_text(
         self,
         text: str,
-        entities: list = DEFAULT_ENTITIES,
-        language: str = DEFAULT_LANGUAGE,
+        entities: list = settings.DEFAULT_ENTITIES,
+        language: str = settings.DEFAULT_LANGUAGE,
     ) -> list:
         """Analyseer tekst met behulp van de NLP-engine en pattern recognizers.
 
@@ -78,9 +75,10 @@ class ModularTextAnalyzer:
         """
         logging.debug(f"Analyzing text with {entities=} and {language=}")
         nlp_results = self.nlp_engine.analyze(text, entities, language)
+        print(f"nlp_results: {nlp_results}")
 
         # Gebruik de pattern recognizers via Presidio AnalyzerEngine
-        pattern_results = self.analyzer.analyze(
+        pattern_results: List[RecognizerResult] = self.analyzer.analyze(
             text=text, entities=entities, language=language
         )
         # Combineer resultaten (dedupliceer op start-end-entity_type)
@@ -106,7 +104,10 @@ class ModularTextAnalyzer:
         return unique_results
 
     def anonymize_text(
-        self, text: str, entities: list = None, language: str = DEFAULT_LANGUAGE
+        self,
+        text: str,
+        entities: list = None,
+        language: str = settings.DEFAULT_LANGUAGE,
     ) -> str:
         """Function to anonymize text by replacing detected entities with placeholders.
 

@@ -1,3 +1,6 @@
+import logging
+
+from fastapi import HTTPException
 from fastapi.routing import APIRouter
 
 from src.api.anonymizer.engine import ModularTextAnalyzer
@@ -19,7 +22,17 @@ def ping() -> dict[str, str]:
 
 @router.post("/analyze", response_model=AnalyzeResponse)
 def analyze_text(request: AnalyzeRequest) -> AnalyzeResponse:
-    results = analyzer.analyze_text(request.text, request.entities, request.language)
+    try:
+        results = analyzer.analyze_text(
+            request.text, request.entities, request.language
+        )
+    except Exception as e:
+        logging.error(f"Error during analysis: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="An error occurred during text analysis. Please try again later.",
+        )
+
     entities_found = [
         EntityResult(
             entity_type=ent["entity_type"],

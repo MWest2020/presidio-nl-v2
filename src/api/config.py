@@ -5,6 +5,18 @@ import os
 
 class Settings:
     DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
+    DEFAULT_ENTITIES = [
+        "PERSON",
+        "LOCATION",
+        "PHONE_NUMBER",
+        "EMAIL",
+        "ORGANIZATION",
+        "IBAN",
+        "ADDRESS",
+    ]
+    DEFAULT_LANGUAGE = "nl"
+    DEFAULT_NLP_ENGINE = "spacy"
+    DEFAULT_SPACY_MODEL = "nl_core_news_md"
 
 
 settings: Settings = Settings()
