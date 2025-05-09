@@ -1,9 +1,5 @@
-import sys
-import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
 from fastapi import FastAPI
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from anonymizer.engine import ModularTextAnalyzer
 from typing import List, Optional
 
@@ -13,7 +9,7 @@ analyzer = ModularTextAnalyzer()
 
 class AnalyzeRequest(BaseModel):
     text: str
-    entities: Optional[List[str]] = None
+    entities: Optional[List[str]] = Field(default_factory=lambda: ["PERSON", "LOCATION", "PHONE_NUMBER", "EMAIL", "IBAN"])
     language: Optional[str] = "nl"
 
 class EntityResult(BaseModel):
