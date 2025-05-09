@@ -1,12 +1,18 @@
 [project]
 name = "presidio-nl-v2"
 version = "0.1.0"
-description = "Add your description here"
+description = "Dutch Presidio-based Anonimyzer"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "fastapi[all]>=0.115.12",
     "presidio-analyzer>=2.2.358",
+    "transformers>=4.51.3",
+    "nl_core_news_md",
 ]
+
+[tool.uv.sources]
+nl-core-news-md = { url = "https://github.com/explosion/spacy-models/releases/download/nl_core_news_md-3.8.0/nl_core_news_md-3.8.0-py3-none-any.whl"}
 
 [tool.ruff]
 line-length = 88

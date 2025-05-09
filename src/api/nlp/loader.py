@@ -1,8 +1,11 @@
 import yaml
-from nlp.spacy_engine import SpacyEngine
-from nlp.transformers_engine import TransformersEngine
 
-def load_nlp_engine(config_path: str = None, config_dict: dict = None):
+from src.api.nlp.spacy_engine import SpacyEngine
+from src.api.nlp.transformers_engine import TransformersEngine
+
+
+# rewrtite to use overloading
+def load_nlp_engine(config_path: str = None, config_dict: dict = None) -> object:
     if config_dict is None and config_path:
         with open(config_path) as f:
             config_dict = yaml.safe_load(f)
@@ -16,4 +19,4 @@ def load_nlp_engine(config_path: str = None, config_dict: dict = None):
     elif engine_type == "transformers":
         return TransformersEngine(model_name)
     else:
-        raise ValueError(f"Onbekende NLP engine: {engine_type}") 
+        raise ValueError(f"Onbekende NLP engine: {engine_type}")
