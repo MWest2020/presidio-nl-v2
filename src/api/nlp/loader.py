@@ -1,16 +1,33 @@
+from typing import Union, overload
+
 import yaml
 
 from src.api.nlp.spacy_engine import SpacyEngine
 from src.api.nlp.transformers_engine import TransformersEngine
 
 
-# rewrtite to use overloading
-def load_nlp_engine(config_path: str = None, config_dict: dict = None) -> object:
-    if config_dict is None and config_path:
-        with open(config_path) as f:
-            config_dict = yaml.safe_load(f)
+@overload
+def load_nlp_engine(config_dict: dict = None) -> SpacyEngine: ...
+
+
+@overload
+def load_nlp_engine(config_dict: dict = None) -> TransformersEngine: ...
+
+
+def load_nlp_engine(config_dict: dict = None) -> Union[SpacyEngine, TransformersEngine]:
+    """Load the NLP engine based on the provided configuration.
+
+    Args:
+        config_dict (dict, optional): model and supplier config. Defaults to None.
+
+    Raises:
+        ValueError: if the engine type is unknown.
+
+    Returns:
+        Union[SpacyEngine, TransformersEngine]: the loaded NLP engine.
+    """
     if config_dict is None:
-        # Default naar SpaCy
+        # Default to SpaCy
         return SpacyEngine()
 
     engine_type = config_dict.get("nlp_engine", "spacy")
