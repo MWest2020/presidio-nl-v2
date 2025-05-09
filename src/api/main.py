@@ -1,14 +1,26 @@
 from typing import List, Optional
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from src.api.anonymizer.engine import ModularTextAnalyzer
+from src.api.config import setup_logging
+
+setup_logging()
 
 app = FastAPI(
     title="Presidio-NL API",
     description="API voor Nederlandse tekst analyse en anonimisatie",
     version="0.2.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 analyzer = ModularTextAnalyzer()
@@ -38,6 +50,11 @@ class AnalyzeResponse(BaseModel):
 class AnonymizeResponse(BaseModel):
     text: str
     anonymized: str
+
+
+@app.get("/health")
+def ping() -> dict[str, str]:
+    return {"ping": "pong"}
 
 
 @app.post("/analyze", response_model=AnalyzeResponse)
