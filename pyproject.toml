@@ -9,6 +9,7 @@ dependencies = [
     "presidio-analyzer>=2.2.358",
     "transformers>=4.51.3",
     "nl_core_news_md",
+    "torch>=2.7.0",
 ]
 
 [tool.uv.sources]
