@@ -1,11 +1,8 @@
-from typing import List, Optional
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
 
-from src.api.anonymizer.engine import ModularTextAnalyzer
 from src.api.config import setup_logging
+from src.api.routers import router
 
 setup_logging()
 
@@ -22,60 +19,4 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-analyzer = ModularTextAnalyzer()
-
-
-class AnalyzeRequest(BaseModel):
-    text: str
-    entities: Optional[List[str]] = Field(
-        default_factory=lambda: ["PERSON", "LOCATION", "PHONE_NUMBER", "EMAIL", "IBAN"]
-    )
-    language: Optional[str] = "nl"
-
-
-class EntityResult(BaseModel):
-    entity_type: str
-    text: str
-    start: int
-    end: int
-    score: float
-
-
-class AnalyzeResponse(BaseModel):
-    text: str
-    entities_found: List[EntityResult]
-
-
-class AnonymizeResponse(BaseModel):
-    text: str
-    anonymized: str
-
-
-@app.get("/health")
-def ping() -> dict[str, str]:
-    return {"ping": "pong"}
-
-
-@app.post("/analyze", response_model=AnalyzeResponse)
-def analyze_text(request: AnalyzeRequest) -> AnalyzeResponse:
-    results = analyzer.analyze_text(request.text, request.entities, request.language)
-    entities_found = [
-        EntityResult(
-            entity_type=ent["entity_type"],
-            text=ent["text"],
-            start=ent["start"],
-            end=ent["end"],
-            score=ent["score"],
-        )
-        for ent in results
-    ]
-    return AnalyzeResponse(text=request.text, entities_found=entities_found)
-
-
-@app.post("/anonymize", response_model=AnonymizeResponse)
-def anonymize_text(request: AnalyzeRequest) -> AnonymizeResponse:
-    anonymized = analyzer.anonymize_text(
-        request.text, request.entities, request.language
-    )
-    return AnonymizeResponse(text=request.text, anonymized=anonymized)
+app.include_router(router=router)
