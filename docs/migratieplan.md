@@ -19,7 +19,7 @@
      - `tests/` (unittests)
 
 3. **Abstractielaag voor NLP-Engines**
-   - Interface `NlpEngine` in `app/nlp/base.py`.
+   - Interface `NLPEngine` in `app/nlp/base.py`.
    - Implementaties voor SpaCy (`spacy_engine.py`) en transformers (`transformers_engine.py`).
    - Configuratie bepaalt welke engine geladen wordt.
 

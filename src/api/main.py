@@ -1,8 +1,9 @@
 from typing import List, Optional
 
-from anonymizer.engine import ModularTextAnalyzer
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
+
+from src.api.anonymizer.engine import ModularTextAnalyzer
 
 app = FastAPI(
     title="Presidio-NL API",
@@ -40,7 +41,7 @@ class AnonymizeResponse(BaseModel):
 
 
 @app.post("/analyze", response_model=AnalyzeResponse)
-def analyze_text(request: AnalyzeRequest):
+def analyze_text(request: AnalyzeRequest) -> AnalyzeResponse:
     results = analyzer.analyze_text(request.text, request.entities, request.language)
     entities_found = [
         EntityResult(
@@ -56,7 +57,7 @@ def analyze_text(request: AnalyzeRequest):
 
 
 @app.post("/anonymize", response_model=AnonymizeResponse)
-def anonymize_text(request: AnalyzeRequest):
+def anonymize_text(request: AnalyzeRequest) -> AnonymizeResponse:
     anonymized = analyzer.anonymize_text(
         request.text, request.entities, request.language
     )
