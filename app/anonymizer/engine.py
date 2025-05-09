@@ -34,6 +34,10 @@ class ModularTextAnalyzer:
         )
 
     def analyze_text(self, text: str, entities: list = None, language: str = "nl"):
+        if not entities:
+            entities = [
+                "PERSON", "LOCATION", "PHONE_NUMBER", "EMAIL", "ORGANIZATION", "IBAN", "ADDRESS"
+            ]
         # Gebruik de modulaire NLP-engine voor NER
         nlp_results = self.nlp_engine.analyze(text, entities, language)
         # Gebruik de pattern recognizers via Presidio AnalyzerEngine
@@ -61,4 +65,13 @@ class ModularTextAnalyzer:
             if key not in seen:
                 unique_results.append(r)
                 seen.add(key)
-        return unique_results 
+        return unique_results
+
+    def anonymize_text(self, text: str, entities: list = None, language: str = "nl"):
+        results = self.analyze_text(text, entities, language)
+        # Sorteer op start, zodat vervangen van achter naar voren kan
+        sorted_results = sorted(results, key=lambda x: x['start'], reverse=True)
+        anonymized = text
+        for ent in sorted_results:
+            anonymized = anonymized[:ent['start']] + f"<{ent['entity_type']}>" + anonymized[ent['end']:]
+        return anonymized 

@@ -6,7 +6,6 @@ De applicatie bestaat uit een API (FastAPI) en CLI voor tekst-anonimisering, waa
 ## Componenten
 
 - **API (FastAPI):** Biedt endpoints voor analyse en anonimisering van tekst.
-- **CLI:** Command line interface voor batch-anonimisering en testen.
 - **Anonymizer:** Kernlogica voor detectie en anonimisering van PII.
 - **NLP-engine abstractie:** Interface en implementaties voor verschillende NLP-backends (SpaCy, transformers, ...).
 - **Custom recognizers:** Eigen recognizers voor Nederlandse PII (zoals BSN, IBAN, etc.).
@@ -17,7 +16,7 @@ De applicatie bestaat uit een API (FastAPI) en CLI voor tekst-anonimisering, waa
 
 - De keuze van het NLP-model gebeurt via een configuratiebestand (`conf/spacy.yaml`, `conf/transformers.yaml`, ...).
 - Bij opstarten leest de applicatie deze config en laadt de juiste NLP-engine.
-- De rest van de applicatie (API, CLI, anonymizer) gebruikt alleen de abstracte interface en is onafhankelijk van het gekozen model.
+- De rest van de applicatie (API, anonymizer) gebruikt alleen de abstracte interface en is onafhankelijk van het gekozen model.
 
 ## Uitbreidbaarheid
 
@@ -26,7 +25,7 @@ De applicatie bestaat uit een API (FastAPI) en CLI voor tekst-anonimisering, waa
 
 ## Voordelen
 - **Flexibel:** Snel wisselen tussen modellen zonder codewijzigingen.
-- **Herbruikbaar:** Zelfde API/CLI voor alle modellen.
+- **Herbruikbaar:** Zelfde API voor alle modellen.
 - **Onderhoudbaar:** Duidelijke scheiding tussen infrastructuur, logica en modelkeuze.
 
 ---

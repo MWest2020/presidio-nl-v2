@@ -7,7 +7,6 @@ setup(
     install_requires=[
         "presidio-analyzer",
         "spacy",
-        "click",
         # Voeg hier andere requirements toe indien nodig
     ]
 ) 

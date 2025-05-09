@@ -1,7 +1,6 @@
 # Lessons Learned uit de PoC
 
 ## Wat werkte goed
-- De API en CLI werkten robuust en waren goed te testen.
 - Custom recognizers voor Nederlandse PII (zoals BSN, IBAN) waren eenvoudig toe te voegen.
 - Containerisatie (Docker) maakte deployment en testen makkelijk.
 
@@ -12,7 +11,6 @@
 
 ## Belangrijkste verbeterpunten voor de nieuwe opzet
 - Maak de NLP-engine verwisselbaar via een abstractielaag en configuratie.
-- Houd de API en CLI onafhankelijk van het gekozen model.
 - Centraliseer configuratie van modellen en recognizers.
 - Documenteer keuzes en uitbreidingsmogelijkheden expliciet.
 

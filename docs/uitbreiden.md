@@ -13,9 +13,6 @@
 3. **Pas de config-loader aan**
    - Zorg dat de applicatie de nieuwe engine kan laden op basis van de config.
 
-4. **Test de werking**
-   - Draai de API en CLI met het nieuwe model en controleer de output.
-
 ## Nieuwe recognizers toevoegen
 
 1. **Maak een nieuwe recognizer-klasse**
@@ -25,9 +22,6 @@
 2. **Registreer de recognizer**
    - Voeg de nieuwe recognizer toe aan de registry in de analyzer-engine.
    - Dit kan via code of (optioneel) via een config.
-
-3. **Test de werking**
-   - Controleer of de nieuwe entiteit correct wordt herkend in de API/CLI.
 
 ---
 
