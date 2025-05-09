@@ -1,0 +1,45 @@
+FROM python:3.12.10-slim-bookworm
+
+# use the latest version of uv from the official repository
+<<<<<<< HEAD
+COPY --from=ghcr.io/astral-sh/uv:0.7.3 /uv /uvx /bin/
+
+# RUN apt-get update && apt-get install -y build-essential
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd -r presidio && useradd --no-log-init -r -g presidio presidio
+
+=======
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+RUN groupadd -r presidio && useradd --no-log-init -r -g presidio presidio
+USER presidio
+    
+>>>>>>> 5a58059797c0e50ade35b736f41a5762802bf73f
+WORKDIR /app
+
+COPY pyproject.toml uv.lock ./
+
+<<<<<<< HEAD
+# Geef schrijfrechten aan presidio user op /app en uv.lock
+RUN chmod -R a+w /app
+
+USER presidio
+
+=======
+>>>>>>> 5a58059797c0e50ade35b736f41a5762802bf73f
+RUN uv sync --frozen --no-dev --no-cache
+
+COPY src/api ./src/api
+
+COPY api.py ./
+
+EXPOSE 8080
+
+<<<<<<< HEAD
+=======
+
+>>>>>>> 5a58059797c0e50ade35b736f41a5762802bf73f
+CMD ["uv", "run", "--no-dev", "--no-cache", "api.py", "--host=0.0.0.0", "--workers=2", "--env=production", "--port=8080"]

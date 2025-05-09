@@ -12,8 +12,10 @@ def load_nlp_engine(config_path: str = None, config_dict: dict = None) -> object
     if config_dict is None:
         # Default naar SpaCy
         return SpacyEngine()
+
     engine_type = config_dict.get("nlp_engine", "spacy")
     model_name = config_dict.get("model_name", "nl_core_news_md")
+
     if engine_type == "spacy":
         return SpacyEngine(model_name)
     elif engine_type == "transformers":

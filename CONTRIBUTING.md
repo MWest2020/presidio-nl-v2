@@ -22,6 +22,9 @@
 - **CI/CD:**  
   - Linting, type checking en tests worden automatisch uitgevoerd in de CI/CD pipeline.
   - Gebruik `mypy` via de CLI in CI, niet als daemon.
+- **Git:**
+  - Run `scripts/precommit.sh` (bash) of `scripts\precommit.Ps1` (PS) voor commit hooks.
+  - Houd duidelijke commit messages aan, bij voorkeur in de vorm van `feat: [description]` of `fix: [description]`.
 
 ### Best Practices
 
@@ -38,12 +41,12 @@
 **Voorbeeld workflow voor contributors:**
 
 1. Fork & clone de repo.
-2. Installeer dependencies met `uv venv && uv pip install -r requirements.txt` of direct via `uv pip install .`
+2. Installeer dependencies met `uv venv && uv sync` of direct via `uv pip install [package]`
 3. Codeer je feature/fix, commit met duidelijke boodschap.
 4. Run lokaal:  
    - `ruff check .`  
    - `ruff format .`  
    - `mypy .`  
    - `pytest`
-5. Voeg docstrings toe waar nodig.
-6. Maak een pull request. 
+5. Voeg docstrings toe waar nodig, en hanteer de Google-stijl voor Docstrings.
+6. Maak een pull request.

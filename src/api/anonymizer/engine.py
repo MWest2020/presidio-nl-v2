@@ -1,3 +1,5 @@
+import logging
+
 from presidio_analyzer import AnalyzerEngine, RecognizerRegistry
 from presidio_analyzer.nlp_engine import NlpEngineProvider
 
@@ -13,10 +15,8 @@ class ModularTextAnalyzer:
     """Modulaire analyzer-klasse voor Nederlandse tekst."""
 
     def __init__(self, nlp_config_path=None, nlp_config_dict=None) -> None:
-        # Laad de modulaire NLP-engine
         self.nlp_engine = load_nlp_engine(nlp_config_path, nlp_config_dict)
 
-        # Voeg een minimale SpaCy-engine toe voor Presidio pattern recognizers
         spacy_config = {
             "nlp_engine_name": "spacy",
             "models": [{"lang_code": "nl", "model_name": "nl_core_news_md"}],
@@ -24,18 +24,25 @@ class ModularTextAnalyzer:
         spacy_provider = NlpEngineProvider(nlp_configuration=spacy_config)
         presidio_spacy_engine = spacy_provider.create_engine()
 
-        # Maak een registry aan en voeg custom recognizers toe
         registry = RecognizerRegistry()
         registry.supported_languages = ["nl"]
-        registry.add_recognizer(DutchPhoneNumberRecognizer())
-        registry.add_recognizer(DutchIBANRecognizer())
-        registry.add_recognizer(DutchEmailRecognizer())
+
+        recognizers_to_add = [
+            DutchPhoneNumberRecognizer(),
+            DutchIBANRecognizer(),
+            DutchEmailRecognizer(),
+        ]
+        for recognizer in recognizers_to_add:
+            registry.add_recognizer(recognizer=recognizer)
 
         # Initialiseer de AnalyzerEngine met SpaCy-engine voor pattern recognizers
         self.analyzer = AnalyzerEngine(
             nlp_engine=presidio_spacy_engine,
             registry=registry,
             supported_languages=["nl"],
+        )
+        logging.debug(
+            f"ModularTextAnalyzer is initialized with {len(recognizers_to_add)} recognizers, {spacy_config=}"
         )
 
     def analyze_text(
@@ -51,7 +58,7 @@ class ModularTextAnalyzer:
                 "IBAN",
                 "ADDRESS",
             ]
-        # Gebruik de modulaire NLP-engine voor NER
+        logging.debug(f"Analyzing text with {entities=} and {language=}")
         nlp_results = self.nlp_engine.analyze(text, entities, language)
         # Gebruik de pattern recognizers via Presidio AnalyzerEngine
         pattern_results = self.analyzer.analyze(

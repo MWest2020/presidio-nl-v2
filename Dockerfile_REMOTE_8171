@@ -18,4 +18,5 @@ COPY api.py ./
 
 EXPOSE 8080
 
+
 CMD ["uv", "run", "--no-dev", "--no-cache", "api.py", "--host=0.0.0.0", "--workers=2", "--env=production", "--port=8080"]
