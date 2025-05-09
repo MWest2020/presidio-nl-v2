@@ -1,0 +1,34 @@
+[project]
+name = "presidio-nl-v2"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "presidio-analyzer>=2.2.358",
+]
+
+[tool.ruff]
+line-length = 88
+target-version="py312"
+include = ["pyproject.toml", "src/**/*.py"]
+
+[tool.ruff.lint]
+extend-select = ["D", "I"]
+ignore = ["D1"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.mypy]
+disallow_untyped_defs = true
+disallow_any_unimported = false
+implicit_optional = false
+check_untyped_defs = true
+warn_return_any = true
+warn_unused_ignores = true
+show_error_codes = true
+python_version = "3.12"
+exclude = ["tests/"]
+follow_untyped_imports = true
+ignore_missing_imports = true
