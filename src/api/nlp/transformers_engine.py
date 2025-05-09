@@ -1,5 +1,6 @@
-from nlp.base import NLPEngine
 from transformers import pipeline
+
+from src.api.nlp.base import NLPEngine
 
 
 class TransformersEngine(NLPEngine):

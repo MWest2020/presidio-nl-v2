@@ -522,6 +522,14 @@ wheels = [
 ]
 
 [[package]]
+name = "nl-core-news-md"
+version = "3.8.0"
+source = { url = "https://github.com/explosion/spacy-models/releases/download/nl_core_news_md-3.8.0/nl_core_news_md-3.8.0-py3-none-any.whl" }
+wheels = [
+    { url = "https://github.com/explosion/spacy-models/releases/download/nl_core_news_md-3.8.0/nl_core_news_md-3.8.0-py3-none-any.whl", hash = "sha256:8969da865bb746189783c40197a7e2c082adda73b7fc0d9a364a5e644ff54e68" },
+]
+
+[[package]]
 name = "numpy"
 version = "2.2.5"
 source = { registry = "https://pypi.org/simple" }
@@ -653,6 +661,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "fastapi", extra = ["all"] },
+    { name = "nl-core-news-md" },
     { name = "presidio-analyzer" },
     { name = "transformers" },
 ]
@@ -660,6 +669,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", extras = ["all"], specifier = ">=0.115.12" },
+    { name = "nl-core-news-md", url = "https://github.com/explosion/spacy-models/releases/download/nl_core_news_md-3.8.0/nl_core_news_md-3.8.0-py3-none-any.whl" },
     { name = "presidio-analyzer", specifier = ">=2.2.358" },
     { name = "transformers", specifier = ">=4.51.3" },
 ]
