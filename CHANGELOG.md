@@ -1,10 +1,20 @@
 # Changelog
 
-## Deze week
-- Refactor van de IBAN recognizer: ondersteunt nu IBANs uit alle landen in plaats van alleen Nederlandse IBANs.
-- Opruimen van oude en dubbele bestanden in de codebase.
-- Verbeteringen aan de structuur van de recognizers (o.a. phone, email).
-- Testen toegevoegd voor directe functionaliteitscontrole zonder API of Docker.
+Alle belangrijke wijzigingen in dit project worden in dit bestand gedocumenteerd.
+
+De opmaak is gebaseerd op [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) en dit project maakt gebruik van [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## 09-05-2025 0.0.1
+
+###
+- Herziening van de Presidio-Nl api v1
+- Projectafspraken en opbouw Python
+- Testsuite
+- PII-detectie voor:
+    * naam
+    * e-mailadressen
+    * telefoonnummers
+    * beperkte lokatienamen (staat in planning via flair of db)
 
 ## Vandaag
 - IBAN recognizer generiek gemaakt en getest met verschillende landen.

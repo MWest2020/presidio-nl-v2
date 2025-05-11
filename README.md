@@ -339,5 +339,4 @@ curl -X POST "http://localhost:8000/analyze" -H "Content-Type: application/json"
 ```
 
 ### Let op
-- **Stuur altijd expliciet de juiste entiteiten mee** in je request (zoals hierboven), anders kan Presidio geen recognizers vinden en krijg je een 500 error.
 - Gebruik `/docs` voor snelle interactie en testen.
