@@ -21,7 +21,7 @@ class DutchPhoneNumberRecognizer(PatternRecognizer):
         )
 
 
-class DutchIBANRecognizer(PatternRecognizer):
+class IBANRecognizer(PatternRecognizer):
     def __init__(
         self,
         patterns: Optional[List[Pattern]] = None,
@@ -29,7 +29,7 @@ class DutchIBANRecognizer(PatternRecognizer):
         supported_language: str = "nl",
     ):
         if patterns is None:
-            patterns = [Pattern("DUTCH_IBAN", r"\bNL\d{2}[A-Z]{4}\d{10}\b", 0.6)]
+            patterns = [Pattern("IBAN", r"\b[A-Z]{2}\d{2}[A-Z0-9]{1,30}\b", 0.6)]
         super().__init__(
             supported_entity="IBAN",
             patterns=patterns,
