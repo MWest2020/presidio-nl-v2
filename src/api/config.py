@@ -4,7 +4,21 @@ import os
 
 
 class Settings:
-    DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
+    DEBUG: bool = os.getenv("DEBUG", "true").lower() == "true"
+    DEFAULT_ENTITIES = [
+        "PERSON",
+        "LOCATION",
+        "PHONE_NUMBER",
+        "EMAIL",
+        "ORGANIZATION",
+        "IBAN",
+        "ADDRESS",
+    ]
+
+    DEFAULT_LANGUAGE = "nl"
+    DEFAULT_NLP_ENGINE = "spacy"
+    DEFAULT_SPACY_MODEL = "nl_core_news_lg"
+    DEFAULT_TRANSFORMERS_MODEL = "pdelobelle/robbert-v2-dutch-base"
 
 
 settings: Settings = Settings()

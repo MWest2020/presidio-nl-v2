@@ -1,11 +1,8 @@
-from typing import List, Optional
-
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
 
-from src.api.anonymizer.engine import ModularTextAnalyzer
 from src.api.config import setup_logging
+from src.api.routers import router
 
 setup_logging()
 
@@ -21,7 +18,8 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-)
+
+app.include_router(router=router)
 
 analyzer = ModularTextAnalyzer()
 
@@ -94,3 +92,4 @@ def anonymize_text(request: AnalyzeRequest) -> AnonymizeResponse:
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return AnonymizeResponse(text=request.text, anonymized=anonymized)
+
