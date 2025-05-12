@@ -4,6 +4,10 @@ from presidio_analyzer import Pattern, PatternRecognizer
 
 
 class DutchPhoneNumberRecognizer(PatternRecognizer):
+    """
+    Herkenner voor Nederlandse telefoonnummers.
+    Gebruikt een regex-patroon voor mobiele en vaste nummers in NL-formaat.
+    """
     def __init__(
         self,
         context: Optional[List[str]] = None,
@@ -21,6 +25,10 @@ class DutchPhoneNumberRecognizer(PatternRecognizer):
 
 
 class DutchIBANRecognizer(PatternRecognizer):
+    """
+    Herkenner voor Nederlandse IBAN bankrekeningnummers.
+    Herkent alleen IBANs die beginnen met 'NL'.
+    """
     def __init__(
         self,
         context: Optional[List[str]] = None,
@@ -36,6 +44,9 @@ class DutchIBANRecognizer(PatternRecognizer):
 
 
 class DutchEmailRecognizer(PatternRecognizer):
+    """
+    Herkenner voor e-mailadressen volgens het standaard e-mailpatroon.
+    """
     def __init__(
         self,
         context: Optional[List[str]] = None,

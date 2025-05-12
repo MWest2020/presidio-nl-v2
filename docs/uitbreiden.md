@@ -1,28 +1,22 @@
-# Handleiding: Uitbreiden met nieuwe modellen of recognizers
+# Uitbreiden: Nieuwe modellen of recognizers toevoegen
 
-## Nieuwe NLP-modellen toevoegen
+Wil je de Presidio-NL API uitbreiden met een nieuw NLP-model of een extra herkenner? Dat kan eenvoudig dankzij de modulaire opzet.
 
-1. **Maak een nieuwe engine-implementatie aan**
-   - Voeg een Python-bestand toe in `app/nlp/` (bijv. `my_engine.py`).
-   - Implementeer de interface uit `base.py`.
+## Nieuw NLP-model toevoegen
+1. **Implementeer een nieuwe engine**
+   - Voeg een Python-klasse toe in `src/api/nlp/` (zie `spacy_engine.py` of `transformers_engine.py` als voorbeeld).
+   - Zorg dat deze de interface uit [`src/api/nlp/base.py`](../src/api/nlp/base.py) (`NLPEngine`) implementeert.
+2. **Pas de configuratie aan**
+   - Voeg het model toe aan de settings in `src/api/config.py` of via een config-bestand.
+3. **Gebruik**
+   - De API gebruikt automatisch het gekozen model bij het opstarten.
 
-2. **Voeg een configuratiebestand toe**
-   - Maak een YAML-bestand aan in `conf/` (bijv. `my_engine.yaml`).
-   - Geef hierin aan welk model geladen moet worden en eventuele parameters.
-
-3. **Pas de config-loader aan**
-   - Zorg dat de applicatie de nieuwe engine kan laden op basis van de config.
-
-## Nieuwe recognizers toevoegen
-
+## Nieuwe recognizer toevoegen
 1. **Maak een nieuwe recognizer-klasse**
-   - Voeg een Python-bestand toe in `app/anonymizer/recognizers/`.
-   - Implementeer een recognizer (bijv. subclass van `PatternRecognizer` of `EntityRecognizer`).
-
+   - Voeg een Python-klasse toe in `src/api/anonymizer/recognizers/` (zie `patterns.py` als voorbeeld).
+   - Implementeer een subclass van `PatternRecognizer`.
 2. **Registreer de recognizer**
-   - Voeg de nieuwe recognizer toe aan de registry in de analyzer-engine.
-   - Dit kan via code of (optioneel) via een config.
+   - Voeg de nieuwe recognizer toe aan de registry in `src/api/anonymizer/engine.py`.
 
 ---
-
-Zie ook `docs/architectuur.md` voor de architectuur en `docs/migratieplan.md` voor de migratiestappen. 
+Zie de codevoorbeelden in de genoemde modules voor een snelle start. 

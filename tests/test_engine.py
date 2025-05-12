@@ -5,6 +5,9 @@ from app.api.app import app
 
 
 def test_analyze_text_person_and_email():
+    """
+    Test of de analyzer zowel PERSON als EMAIL entiteiten kan vinden in een voorbeeldzin.
+    """
     analyzer = ModularTextAnalyzer()
     text = "Mijn naam is Mark Rutte en mijn email is test@example.com."
     entities = ["PERSON", "EMAIL"]
@@ -21,6 +24,9 @@ def test_analyze_text_person_and_email():
 
 
 def test_api_analyze_person_and_email():
+    """
+    Test of de API endpoint /analyze correct werkt voor PERSON en EMAIL entiteiten.
+    """
     client = TestClient(app)
     payload = {
         "text": "Mijn naam is Mark Rutte en mijn email is test@example.com.",

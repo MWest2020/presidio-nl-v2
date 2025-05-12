@@ -5,6 +5,10 @@ from src.api.nlp.base import NLPEngine
 
 
 class SpacyEngine(NLPEngine):
+    """
+    Wrapper voor SpaCy NER-engine voor Nederlandse PII-detectie.
+    Laadt een opgegeven SpaCy-model en voert entity extractie uit.
+    """
     def __init__(self, model_name: str = settings.DEFAULT_SPACY_MODEL) -> None:
         self.model_name = model_name
         self.nlp: spacy.language.Language = spacy.load(model_name)

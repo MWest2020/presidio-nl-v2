@@ -17,11 +17,24 @@ analyzer = ModularTextAnalyzer()
 
 @router.get("/health")
 def ping() -> dict[str, str]:
+    """
+    Health check endpoint.
+    Geeft een eenvoudige status terug om te controleren of de API draait.
+    """
     return {"ping": "pong"}
 
 
 @router.post("/analyze", response_model=AnalyzeResponse)
 def analyze_text(request: AnalyzeRequest) -> AnalyzeResponse:
+    """
+    Analyseer tekst op PII-entiteiten via de ModularTextAnalyzer.
+
+    Args:
+        request (AnalyzeRequest): Request met tekst, entiteiten en taal.
+
+    Returns:
+        AnalyzeResponse: Response met gevonden entiteiten in de tekst.
+    """
     try:
         results = analyzer.analyze_text(
             request.text, request.entities, request.language
@@ -48,6 +61,15 @@ def analyze_text(request: AnalyzeRequest) -> AnalyzeResponse:
 
 @router.post("/anonymize", response_model=AnonymizeResponse)
 def anonymize_text(request: AnalyzeRequest) -> AnonymizeResponse:
+    """
+    Anonimiseer tekst door gevonden PII te vervangen door placeholders.
+
+    Args:
+        request (AnalyzeRequest): Request met tekst, entiteiten en taal.
+
+    Returns:
+        AnonymizeResponse: Response met originele en geanonimiseerde tekst.
+    """
     anonymized = analyzer.anonymize_text(
         request.text, request.entities, request.language
     )

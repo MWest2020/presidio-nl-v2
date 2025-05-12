@@ -1,6 +1,9 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+from typing import List, Optional
 
+from src.api.anonymizer.engine import ModularTextAnalyzer
 from src.api.config import setup_logging
 from src.api.routers import router
 
@@ -17,7 +20,8 @@ app.add_middleware(
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["*"]
+)
 
 app.include_router(router=router)
 
@@ -28,6 +32,12 @@ SUPPORTED_ENTITIES = ["PERSON", "LOCATION", "PHONE_NUMBER", "EMAIL", "IBAN"]
 
 @app.get("/entities")
 def get_supported_entities():
+    """
+    Endpoint om de lijst van ondersteunde entiteitstypen op te vragen.
+
+    Returns:
+        dict: Dictionary met een lijst van ondersteunde entiteiten.
+    """
     return {"supported_entities": SUPPORTED_ENTITIES}
 
 
@@ -59,11 +69,24 @@ class AnonymizeResponse(BaseModel):
 
 @app.get("/health")
 def ping() -> dict[str, str]:
+    """
+    Health check endpoint.
+    Geeft een eenvoudige status terug om te controleren of de API draait.
+    """
     return {"ping": "pong"}
 
 
 @app.post("/analyze", response_model=AnalyzeResponse)
 def analyze_text(request: AnalyzeRequest) -> AnalyzeResponse:
+    """
+    Analyseer tekst op PII-entiteiten via de ModularTextAnalyzer.
+
+    Args:
+        request (AnalyzeRequest): Request met tekst, entiteiten en taal.
+
+    Returns:
+        AnalyzeResponse: Response met gevonden entiteiten in de tekst.
+    """
     try:
         results = analyzer.analyze_text(
             request.text, request.entities, request.language
@@ -85,6 +108,15 @@ def analyze_text(request: AnalyzeRequest) -> AnalyzeResponse:
 
 @app.post("/anonymize", response_model=AnonymizeResponse)
 def anonymize_text(request: AnalyzeRequest) -> AnonymizeResponse:
+    """
+    Anonimiseer tekst door gevonden PII te vervangen door placeholders.
+
+    Args:
+        request (AnalyzeRequest): Request met tekst, entiteiten en taal.
+
+    Returns:
+        AnonymizeResponse: Response met originele en geanonimiseerde tekst.
+    """
     try:
         anonymized = analyzer.anonymize_text(
             request.text, request.entities, request.language

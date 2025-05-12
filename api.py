@@ -7,7 +7,7 @@ import uvicorn
 @click.command()
 @click.option(
     "--env",
-    type=click.Choice(["development", "staging", "production"]),
+    type=click.Choice(["development", "staging", "production"]), 
     default="development",
 )
 @click.option(

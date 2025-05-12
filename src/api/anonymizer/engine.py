@@ -15,7 +15,21 @@ from src.api.nlp.spacy_engine import SpacyEngine
 
 
 class ModularTextAnalyzer:
-    """Modulaire analyzer-klasse voor Nederlandse tekst."""
+    """
+    Modulaire analyzer-klasse voor Nederlandse tekst.
+
+    Deze klasse combineert een configureerbare NLP-engine (zoals SpaCy of een
+    HuggingFace transformers-model) met pattern recognizers voor het detecteren
+    en anonimiseren van PII (zoals namen, telefoonnummers, e-mails, IBAN) in
+    Nederlandse tekst. De workflow bestaat uit:
+
+    1. Uitvoeren van NER via de gekozen NLP-engine.
+    2. Toepassen van pattern recognizers (zoals custom regex voor IBAN, telefoon).
+    3. Combineren en dedupliceren van resultaten.
+
+    De klasse is uitbreidbaar met nieuwe modellen en recognizers en vormt de kern
+    van de modulaire architectuur van deze service.
+    """
 
     def __init__(
         self,
