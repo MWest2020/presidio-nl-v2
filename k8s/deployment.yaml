@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: presidio-nl-v2
+  namespace: presidio-nl-v2
+  labels:
+    app: presidio-nl-v2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: presidio-nl-v2
+  template:
+    metadata:
+      labels:
+        app: presidio-nl-v2
+    spec:
+      containers:
+      - name: presidio-nl-v2
+        image: ghcr.io/mwest2020/presidio-nl-v2:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: API_HOST
+          value: "0.0.0.0"
+        - name: API_PORT
+          value: "8080"
+        - name: DEBUG
+          value: "false"
+        - name: LOG_LEVEL
+          value: "info"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "500m"
+          limits:
+            memory: "4Gi"
+            cpu: "1000m" 
