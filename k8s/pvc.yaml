@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: presidio-nl-v2-storage
+  namespace: presidio-nl-v2
+  labels:
+    app: presidio-nl-v2
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: "nfs"
+  resources:
+    requests:
+      storage: 25Gi 

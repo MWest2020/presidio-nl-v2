@@ -16,7 +16,16 @@ Presidio-NL is een modulaire API-service voor het detecteren en anonimiseren van
 
 ## Installatie & Gebruik
 
-### 1. Docker build & run
+### 1. Lokaal draaien (voor ontwikkeling)
+Installeer dependencies en start de API:
+```bash
+uv venv
+uv sync
+uv run api.py
+```
+De API is nu bereikbaar op [http://localhost:8080/docs](http://localhost:8080/docs) (Swagger UI).
+
+### 2. Docker build & run
 
 Bouw het image (bijvoorbeeld met naam `presidio-nl`):
 ```bash
@@ -27,21 +36,62 @@ Start de container:
 ```bash
 docker run -d -p 8000:8080 --name presidio-nl presidio-nl
 ```
-De API is nu bereikbaar op [http://localhost:8000/docs](http://localhost:8000/docs) (Swagger UI).
 
-### 2. Lokaal draaien (voor ontwikkeling)
-Installeer dependencies en start de API:
-```bash
-uv venv
-uv sync
-uv run api.py
-```
+### 3. Kubernetes Deployment (Productie)
+
+De applicatie is gedeployed op Kubernetes met de volgende componenten:
+
+#### Deployment Architectuur
+- **Namespace**: `presidio-nl-v2`
+- **Image**: `ghcr.io/mwest2020/presidio-nl-v2:latest`
+- **Ingress**: HTTPS met Let's Encrypt
+- **Storage**: 25Gi NFS persistent volume voor `/app/storage`
+- **Model Cache**: EmptyDir volume voor `/app/models` (HuggingFace/Transformers cache)
+- **Auto-scaling**: 1-5 replicas op basis van CPU-gebruik (80% threshold)
+
+#### Deployment Stappen
+1. **Manifests toepassen**:
+   ```bash
+   kubectl apply -f k8s/
+   ```
+
+2. **Status controleren**:
+   ```bash
+   kubectl get pods,svc,ingress,pvc,hpa -n presidio-nl-v2
+   ```
+
+3. **Logs bekijken**:
+   ```bash
+   kubectl logs -f deployment/presidio-nl-v2 -n presidio-nl-v2
+   ```
+
+#### Kubernetes Manifests
+De `k8s/` directory bevat alle benodigde manifests:
+- `namespace.yaml` - Namespace definitie
+- `deployment.yaml` - Hoofdapplicatie met volumes en security context
+- `service.yaml` - ClusterIP service op poort 8080
+- `ingress.yaml` - NGINX ingress met SSL/TLS
+- `pvc.yaml` - PersistentVolumeClaim voor storage
+- `serviceaccount.yaml` - Service account voor security
+- `hpa.yaml` - HorizontalPodAutoscaler voor scaling
+- `networkpolicy.yaml` - Network policies voor security
+
+#### Productie URL
+De service is bereikbaar via de geconfigureerde ingress URL.
 
 ## Voorbeeldgebruik
 
 ### Analyseer tekst op PII
 ```bash
-curl -X POST "http://localhost:8000/analyze" -H "Content-Type: application/json" -d '{
+# Lokaal (ontwikkeling)
+curl -X POST "http://localhost:8080/analyze" -H "Content-Type: application/json" -d '{
+  "text": "Mijn IBAN is NL91ABNA0417164300 en mijn telefoon is 06-12345678.",
+  "entities": ["IBAN", "PHONE_NUMBER"],
+  "language": "nl"
+}'
+
+# Productie
+curl -X POST "https://your-domain.com/analyze" -H "Content-Type: application/json" -d '{
   "text": "Mijn IBAN is NL91ABNA0417164300 en mijn telefoon is 06-12345678.",
   "entities": ["IBAN", "PHONE_NUMBER"],
   "language": "nl"
@@ -60,7 +110,15 @@ curl -X POST "http://localhost:8000/analyze" -H "Content-Type: application/json"
 
 ### Anonimiseer tekst
 ```bash
-curl -X POST "http://localhost:8000/anonymize" -H "Content-Type: application/json" -d '{
+# Lokaal (ontwikkeling)
+curl -X POST "http://localhost:8080/anonymize" -H "Content-Type: application/json" -d '{
+  "text": "Mijn IBAN is NL91ABNA0417164300 en mijn telefoon is 06-12345678.",
+  "entities": ["IBAN", "PHONE_NUMBER"],
+  "language": "nl"
+}'
+
+# Productie
+curl -X POST "https://your-domain.com/anonymize" -H "Content-Type: application/json" -d '{
   "text": "Mijn IBAN is NL91ABNA0417164300 en mijn telefoon is 06-12345678.",
   "entities": ["IBAN", "PHONE_NUMBER"],
   "language": "nl"
