@@ -55,12 +55,6 @@ ingress:
       paths:
         - path: /
           pathType: Prefix
-          backend:
-            service:
-              # The service name is derived by the ingress template using the chart's fullname.
-              # No need to specify 'name' here; it was causing the YAML parse error.
-              port:
-                number: 8000
   tls:
     - hosts:
         - "api.presidio-nl-v2.commonground.nu"
