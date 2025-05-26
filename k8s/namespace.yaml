@@ -1,6 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: presidio-nl-v2
-  labels:
-    name: presidio-nl-v2 

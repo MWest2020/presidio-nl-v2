@@ -81,7 +81,7 @@ Thumbs.db
 .env
 .env.*
 
-# ArgoCD applications with sensitive cluster info
-argocd/application-cross-cluster.yaml
-argocd/*-prod.yaml
-argocd/*-accept.yaml 
+# Deployment configurations with sensitive info
+*-prod.yaml
+*-accept.yaml
+*cluster*.yaml 
