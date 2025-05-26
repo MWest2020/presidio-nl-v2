@@ -15,9 +15,9 @@ keywords:
   - privacy
   - pii
 
-home: https://github.com/MWest2020/Presidio-NL_v2.git
+home: https://github.com/MWest2020/presidio-nl-v2.git
 sources:
-  - https://github.com/MWest2020/Presidio-NL_v2.git
+  - https://github.com/MWest2020/presidio-nl-v2.git
 
 dependencies:
   - name: common

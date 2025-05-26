@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/MWest2020/Presidio-NL_v2.git
+    repoURL: https://github.com/MWest2020/presidio-nl-v2.git
     targetRevision: HEAD
     path: charts/presidio-nl-v2
     helm:
