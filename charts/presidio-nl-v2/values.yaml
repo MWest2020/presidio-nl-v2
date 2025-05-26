@@ -55,11 +55,6 @@ ingress:
       paths:
         - path: /
           pathType: Prefix
-          backend:
-            service:
-              name: {{ include "presidio-nl.fullname" . }}
-              port:
-                number: 8000
   tls:
     - hosts:
         - "api.presidio-nl-v2.commonground.nu"
