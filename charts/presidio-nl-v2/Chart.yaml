@@ -21,8 +21,8 @@ sources:
 
 dependencies:
   - name: common
-    version: "1.14.2"
-    # repository: https://charts.bitnami.com/bitnami
+    version: 1.x.x
+    repository: https://charts.bitnami.com/bitnami
 # Removed image section, will be handled by values.yaml
 
 # Image specificaties (voor consistentie met v1 Chart.yaml structuur)
