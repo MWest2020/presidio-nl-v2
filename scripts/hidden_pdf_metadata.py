@@ -37,17 +37,26 @@ def annotate_pdf(
         rects = page.search_for(target)
         for r in rects:
             if replacement is not None:
-                page.add_redact_annot(r, fill=(1, 1, 1))
+                # First record the original occurrence
+                occurrences.append(
+                    {
+                        "page": page_number,
+                        "rect": (r.x0, r.y0, r.x1, r.y1),
+                        "metadata": metadata,
+                    }
+                )
+                # Then apply the redaction
+                page.add_redact_annot(r, fill=(1, 1, 1), text=replacement)
                 page.apply_redactions()
-                page.insert_textbox(r, replacement, fontsize=12)
-            # Record occurrence
-            occurrences.append(
-                {
-                    "page": page_number,
-                    "rect": (r.x0, r.y0, r.x1, r.y1),
-                    "metadata": metadata,
-                }
-            )
+            else:
+                # Record occurrence without redacting
+                occurrences.append(
+                    {
+                        "page": page_number,
+                        "rect": (r.x0, r.y0, r.x1, r.y1),
+                        "metadata": metadata,
+                    }
+                )
     doc.save(output_path, incremental=False)
 
     # Step 3-4: Embed JSON in XMP with pikepdf
