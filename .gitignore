@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# APP specific
+/temp/
+
 # C extensions
 *.so
 

@@ -1,6 +1,6 @@
 import io
 
-import fitz  # PyMuPDF
+import pymupdf
 from fastapi.testclient import TestClient
 
 from src.api.main import app
@@ -9,7 +9,7 @@ client = TestClient(app)
 
 
 def create_test_pdf(text: str) -> bytes:
-    doc = fitz.open()
+    doc = pymupdf.open()
     page = doc.new_page()
     page.insert_text((72, 72), text)
     pdf_bytes = doc.write()
@@ -33,6 +33,8 @@ def test_full_document_flow():
     assert resp.status_code == 200
     assert resp.json()["status"] == "success"
 
-    resp = client.get(f"/api/v1/documents/{file_id}/download", params={"keep_on_server": True})
+    resp = client.get(
+        f"/api/v1/documents/{file_id}/download", params={"keep_on_server": True}
+    )
     assert resp.status_code == 200
     assert resp.headers["content-type"] == "application/pdf"
