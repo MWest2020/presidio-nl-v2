@@ -1,18 +1,19 @@
 import hashlib
 import re
+import uuid
 import xml.sax.saxutils as saxutils
 from typing import Dict, List, Optional, Tuple
 
 import pikepdf
 import pymupdf
 
-# from src.api.utils
-from crypto import (
+from src.api.utils.crypto import (
+    aes_gcm_decrypt as decrypt_entity,
+)
+from src.api.utils.crypto import (
     aes_gcm_encrypt as encrypt_entity,
 )
-
-# from src.api.utils.
-from crypto import (
+from src.api.utils.crypto import (
     fingerprint_sha256 as get_fingerprint,
 )
 
@@ -72,7 +73,7 @@ def anonymize_pdf(
             rects = page.search_for(target)
             for r in rects:
                 # Record before redaction so coordinates refer to original.
-                occ: _Occurrence = {
+                occ: _Occurrence = {  # type: ignore
                     "id": f"ann{id_counter}",
                     "page": page_idx + 1,
                     "rect": (r.x0, r.y0, r.x1, r.y1),
@@ -97,21 +98,39 @@ def anonymize_pdf(
     return occurrences  # For further processing/testing
 
 
-def extract_annotations(input_path: str) -> List[dict]:
-    """Read back annotations embedded by :pyfunc:`anonymize_pdf`."""
+def extract_annotations(
+    input_path: str,
+    *,
+    decryption_key: Optional[bytes] = None,
+    header: bytes = b"header",
+) -> List[dict]:
+    """Return list of dictionaries parsed from XMP.
+
+    If *decryption_key* is supplied, the function will attempt to decrypt the
+    ``EncryptedEntity`` field of each record and add ``entity`` (plaintext).
+    """
     with pikepdf.Pdf.open(input_path) as pdf:
         if "/Metadata" not in pdf.Root:
             return []
-        xmp = pdf.Root.Metadata.read_bytes().decode("utf-8", errors="replace")
-        pattern = re.compile(
-            r"<rdf:Description [^>]*custom:Id=\"([^\"]+)\"([^>]*)/>",
-            re.DOTALL,
-        )
-        results = []
-        for m in pattern.finditer(xmp):
-            attrs = m.group(0)
-            results.append(_attrs_to_dict(attrs))
-        return results
+        xmp_xml = pdf.Root.Metadata.read_bytes().decode("utf-8", errors="replace")
+
+    tag_re = re.compile(r"<rdf:Description([^>]*)/>", re.DOTALL)
+    prop_re = re.compile(r"custom:([A-Za-z]+)=\"([^\"]*)\"")
+
+    annotations: List[dict] = []
+    for m in tag_re.finditer(xmp_xml):
+        attrs_block = m.group(1)
+        props = {k: saxutils.unescape(v) for k, v in prop_re.findall(attrs_block)}
+        if decryption_key and "EncryptedEntity" in props:
+            try:
+                plaintext = decrypt_entity(
+                    props["EncryptedEntity"], decryption_key, header
+                )
+                props["entity"] = plaintext.decode("utf-8", errors="replace")
+            except Exception:
+                props["entity"] = None  # leave undecoded # type: ignore
+        annotations.append(props)
+    return annotations
 
 
 def _embed_occurrences_xmp(pdf_path: str, occs: List[_Occurrence]) -> None:
@@ -121,26 +140,34 @@ def _embed_occurrences_xmp(pdf_path: str, occs: List[_Occurrence]) -> None:
         attrs = {
             "custom:Id": o["id"],
             "custom:Page": str(o["page"]),
-            "custom:Rect": ",".join(map(lambda v: f"{v:.2f}", o["rect"])),
+            "custom:Rect": ",".join(f"{v:.2f}" for v in o["rect"]),
             "custom:EntityType": o["entity_type"],
             "custom:EntityMask": o["entity_mask"],
             "custom:EncryptedEntity": o["encrypted_entity"],
-            "custom:Fingerprint": o["key_fingerprint"],
+            "custom:Fingerprint": o["fingerprint"],
         }
-        escaped = {k: saxutils.escape(v, {'"': "&quot;"}) for k, v in attrs.items()}
-        attr_str = " ".join(f'{k}="{v}"' for k, v in escaped.items())
-        return f"  <rdf:Description rdf:about='' {attr_str}/>"
+        # XML-escape values (quotes, ampersands, etc.)
+        esc = {k: saxutils.escape(v, {'"': "&quot;"}) for k, v in attrs.items()}
+        return (
+            "  <rdf:Description rdf:about='' "
+            + " ".join(f'{k}="{v}"' for k, v in esc.items())
+            + "/>"
+        )
 
+    # Build one <rdf:Description> per occurrence
     descriptions = "\n".join(_make_description(o) for o in occs)
-    xmp = f"""<?xpacket begin='' id='W5M0MpCehiHzreSzNTczkc9d'?>
+    packet_id = uuid.uuid4().hex  # unique ID per XMP packet
+
+    xmp = f"""<?xpacket begin='' id='{packet_id}'>
 <rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'
          xmlns:custom='http://example.com/custom/'>
 {descriptions}
 </rdf:RDF>
 <?xpacket end='w'?>"""
 
+    # Embed/replace the metadata stream
     with pikepdf.Pdf.open(pdf_path, allow_overwriting_input=True) as pdf:
-        pdf.Root.Metadata = pdf.make_stream(xmp.encode("utf‑8"))
+        pdf.Root.Metadata = pdf.make_stream(xmp.encode("utf-8"))
         pdf.save(pdf_path)
 
 
