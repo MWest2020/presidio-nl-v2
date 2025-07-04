@@ -27,3 +27,18 @@ class AddDocumentResponseSuccess(BaseModel):
 
 
 AddDocumentResponse = AddDocumentResponseSuccess | AddDocumentResponseInvalid
+
+
+class DocumentAnonymizationRequest(BaseModel):
+    pii_entities_to_anonymize: list[str]  # List of PII entities to anonymize
+
+
+class DocumentAnonymizationResponse(BaseModel):
+    id: str
+    filename: str
+    anonymized_at: datetime
+    time_taken: int  # Time taken for anonymization in seconds
+    status: str  # e.g., "success", "failed"
+    pii_entities: Optional[list[dict[str, str]]] = (
+        None  # Anonymized entities if applicable
+    )
