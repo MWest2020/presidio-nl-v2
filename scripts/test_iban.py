@@ -1,5 +1,5 @@
 # NOTE: move this back to root to enable import from src.api
-from src.api.anonymizer.recognizers.patterns import DutchIBANRecognizer
+from src.api.utils.patterns import DutchIBANRecognizer
 
 
 def test_iban_recognizer() -> None:

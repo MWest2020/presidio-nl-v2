@@ -1,6 +1,10 @@
 import logging.config
 import os
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 class Settings:
     """Applicatieconfiguratie voor de Presidio-NL API.
@@ -25,6 +29,13 @@ class Settings:
     DEFAULT_SPACY_MODEL = os.getenv("DEFAULT_SPACY_MODEL", "nl_core_news_md")
     DEFAULT_TRANSFORMERS_MODEL = os.getenv(
         "DEFAULT_TRANSFORMERS_MODEL", "pdelobelle/robbert-v2-dutch-base"
+    )
+    ALLOWED_ORIGINS = ["*"]
+    SUPPORTED_UPLOAD_EXTENSIONS = [
+        "pdf",
+    ]
+    CRYPTO_KEY = (
+        os.getenv("CRYPTO_KEY").encode("utf-8") if os.getenv("CRYPTO_KEY") else None
     )
 
 
