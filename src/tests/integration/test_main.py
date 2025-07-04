@@ -1,9 +1,6 @@
 """Integration tests for the main API application."""
 
-import pytest
 from fastapi import status
-
-from src.api.main import app
 
 
 def test_app_root(client):

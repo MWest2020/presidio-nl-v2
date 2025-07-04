@@ -16,9 +16,8 @@ def is_module_installed(module_name):
     return importlib.util.find_spec(module_name) is not None
 
 
-from src.api.database import Base, get_db
-from src.api.main import app
-
+from src.api.database import Base, get_db  # noqa: E402
+from src.api.main import app  # noqa: E402
 
 # Create an in-memory SQLite database for testing
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
