@@ -2,7 +2,7 @@
 replicaCount: 1
 
 image:
-  repository: ghcr.io/mwest2020/presidio-nl-v2
+  repository: mwest2020/openanonymiser
   tag: latest
   pullPolicy: IfNotPresent
 
@@ -47,19 +47,19 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
   hosts:
-    - host: "api.presidio-nl.commonground.nu"
+    - host: "openanonymiser.example.com"
       paths:
         - path: /
           pathType: Prefix
           backend:
             service:
-              name: presidio-nl-v2
+              name: openanonymiser
               port:
                 number: 8080
   tls:
     - hosts:
-        - "api.presidio-nl.commonground.nu"
-      secretName: "presidio-nl-commonground-nu"
+        - "openanonymiser.example.com"
+      secretName: "openanonymiser-tls"
 
 resources:
   limits:
