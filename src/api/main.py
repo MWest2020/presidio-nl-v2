@@ -10,6 +10,7 @@ app = FastAPI(
     title="Presidio-NL API",
     description="API voor Nederlandse tekst analyse en anonimisatie",
     version="0.3.0",
+    docs_url="/api/v1/docs",
 )
 
 app.add_middleware(
