@@ -20,7 +20,7 @@ app.add_middleware(
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"]
+    allow_headers=["*"],
 )
 
 app.include_router(router=router)
@@ -124,4 +124,3 @@ def anonymize_text(request: AnalyzeRequest) -> AnonymizeResponse:
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return AnonymizeResponse(text=request.text, anonymized=anonymized)
-
