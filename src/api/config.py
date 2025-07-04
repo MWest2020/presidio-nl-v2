@@ -1,6 +1,10 @@
 import logging.config
 import os
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 class Settings:
     """Applicatieconfiguratie voor de Presidio-NL API.
@@ -30,6 +34,9 @@ class Settings:
     SUPPORTED_UPLOAD_EXTENSIONS = [
         "pdf",
     ]
+    CRYPTO_KEY = (
+        os.getenv("CRYPTO_KEY").encode("utf-8") if os.getenv("CRYPTO_KEY") else None
+    )
 
 
 settings: Settings = Settings()
