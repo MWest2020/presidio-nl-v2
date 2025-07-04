@@ -26,6 +26,7 @@ class Settings:
     DEFAULT_TRANSFORMERS_MODEL = os.getenv(
         "DEFAULT_TRANSFORMERS_MODEL", "pdelobelle/robbert-v2-dutch-base"
     )
+    ALLOWED_ORIGINS = ["*"]
 
 
 settings: Settings = Settings()
