@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+import pymupdf
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -41,6 +42,8 @@ from src.api.utils import pdf_xmp
 
 documents_router = APIRouter(prefix="/documents", tags=["documents"])
 
+analyzer = ModularTextAnalyzer()
+
 
 @documents_router.post(
     "/upload",
@@ -72,7 +75,6 @@ async def upload_document(
             message=f"Only files with the following extensions are supported: {', '.join(settings.SUPPORTED_UPLOAD_EXTENSIONS)}"
         )
 
-    analyzer = ModularTextAnalyzer()
     docs: list[DocumentDto] = []
 
     for file in files:
@@ -86,24 +88,9 @@ async def upload_document(
         with open(source_path, "wb") as f:
             f.write(content)
 
-        text = ""
-        try:
-            import pymupdf  # PyMuPDF
+        text = extract_text_from_pdf(source_path)
 
-            doc = pymupdf.open(str(source_path))
-            text = "\n".join(page.get_text() for page in doc)
-            doc.close()
-        except Exception:
-            text = ""
-
-        entities = analyzer.analyze_text(text) if text else []
-        unique: list[dict[str, str]] = []
-        seen = set()
-        for ent in entities:
-            key = (ent["entity_type"], ent["text"])
-            if key not in seen:
-                unique.append({"entity_type": ent["entity_type"], "text": ent["text"]})
-                seen.add(key)
+        entities, unique = await extract_unique_entities(text)
 
         # Create document in database
         db_document = create_document(
@@ -140,9 +127,36 @@ async def upload_document(
     return AddDocumentResponseSuccess(files=docs)
 
 
+def extract_text_from_pdf(source_path: Path) -> str:
+    text = ""
+    try:
+        doc = pymupdf.open(str(source_path))
+        text = "\n".join(page.get_text() for page in doc)
+        doc.close()
+    except Exception:
+        text = ""
+    return text
+
+
+async def extract_unique_entities(
+    text: str,
+) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+    entities = analyzer.analyze_text(text) if text else []
+    unique: list[dict[str, str]] = []
+    seen = set()
+    for ent in entities:
+        key = (ent["entity_type"], ent["text"])
+        if key not in seen:
+            unique.append({"entity_type": ent["entity_type"], "text": ent["text"]})
+            seen.add(key)
+    return entities, unique
+
+
 @documents_router.get("/{file_id}/metadata", response_model=DocumentDto)
 async def get_document_metadata(
-    file_id: str, db: Session = Depends(get_db)
+    file_id: str,
+    get_pii_entities: bool = False,
+    db: Session = Depends(get_db),
 ) -> DocumentDto:
     """Get metadata for a specific document. Same response as upload."""
     doc = get_document(db, file_id)
@@ -152,17 +166,9 @@ async def get_document_metadata(
     # Convert DB model to DTO
     tags = [DocumentTagDto(id=str(tag.id), name=str(tag.name)) for tag in doc.tags]
 
-    # Create DTO with only unique entities
-    unique_entities = []
-    if hasattr(doc, "_entities") and doc._entities:
-        seen = set()
-        for ent in doc._entities:
-            key = (ent["entity_type"], ent["text"])
-            if key not in seen:
-                unique_entities.append(
-                    {"entity_type": ent["entity_type"], "text": ent["text"]}
-                )
-                seen.add(key)
+    if get_pii_entities:
+        text = extract_text_from_pdf(Path(doc.source_path))
+        _, unique_entities = await extract_unique_entities(text)
 
     return DocumentDto(
         id=str(doc.id),
