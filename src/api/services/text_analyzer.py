@@ -4,14 +4,14 @@ from typing import List, Optional
 from presidio_analyzer import AnalyzerEngine, RecognizerRegistry, RecognizerResult
 from presidio_analyzer.nlp_engine import NlpEngineProvider
 
-from src.api.anonymizer.recognizers.patterns import (
+from src.api.config import settings
+from src.api.utils.nlp.loader import load_nlp_engine
+from src.api.utils.nlp.spacy_engine import SpacyEngine
+from src.api.utils.patterns import (
     DutchEmailRecognizer,
     DutchIBANRecognizer,
     DutchPhoneNumberRecognizer,
 )
-from src.api.config import settings
-from src.api.nlp.loader import load_nlp_engine
-from src.api.nlp.spacy_engine import SpacyEngine
 
 
 class ModularTextAnalyzer:
