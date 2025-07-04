@@ -19,8 +19,14 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from src.api.config import settings
-from src.api.crud import anonymization_event, document, tag
-from src.api.database import AnonymizationEvent, Document, Tag, get_db
+from src.api.crud import (
+    create_anonymization_event,
+    create_document,
+    create_tag,
+    get_document,
+    update_document_anonymized_path,
+)
+from src.api.database import get_db
 from src.api.dtos import (
     AddDocumentResponse,
     AddDocumentResponseInvalid,
@@ -100,37 +106,31 @@ async def upload_document(
                 seen.add(key)
 
         # Create document in database
-        db_document = Document(
+        db_document = create_document(
+            db,
             id=file_id,
             filename=file.filename or f"{file_id}.pdf",
             content_type=file.content_type or "application/pdf",
-            uploaded_at=datetime.now(),
             source_path=str(source_path),
             anonymized_path=None,
         )
 
-        # Add tags
         db_tags = []
         for tag_name in tags or []:
-            tag = Tag(id=uuid.uuid4().hex, name=tag_name, document_id=file_id)
+            tag_id = uuid.uuid4().hex
+            tag = create_tag(db, tag_id, tag_name, file_id)
             db_tags.append(tag)
-            db_document.tags.append(tag)
 
-        # Store entities in memory attribute (not persisted to DB)
         db_document._entities = entities
 
-        # Add to DB
-        db.add(db_document)
-        db.commit()
-        db.refresh(db_document)
-
-        # Convert to DTO for API response
-        stored_tags = [DocumentTagDto(id=tag.id, name=tag.name) for tag in db_tags]
+        stored_tags = [
+            DocumentTagDto(id=str(tag.id), name=str(tag.name)) for tag in db_tags
+        ]
         doc_meta = DocumentDto(
             id=file_id,
-            filename=db_document.filename,
-            content_type=db_document.content_type,
-            uploaded_at=db_document.uploaded_at,
+            filename=str(db_document.filename),
+            content_type=str(db_document.content_type),
+            uploaded_at=datetime.now(),  # Use current time for response
             tags=stored_tags,
             pii_entities=unique,
         )
@@ -145,12 +145,12 @@ async def get_document_metadata(
     file_id: str, db: Session = Depends(get_db)
 ) -> DocumentDto:
     """Get metadata for a specific document. Same response as upload."""
-    doc = document.get_by_id(db, file_id)
+    doc = get_document(db, file_id)
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
 
     # Convert DB model to DTO
-    tags = [DocumentTagDto(id=tag.id, name=tag.name) for tag in doc.tags]
+    tags = [DocumentTagDto(id=str(tag.id), name=str(tag.name)) for tag in doc.tags]
 
     # Create DTO with only unique entities
     unique_entities = []
@@ -165,10 +165,10 @@ async def get_document_metadata(
                 seen.add(key)
 
     return DocumentDto(
-        id=doc.id,
-        filename=doc.filename,
-        content_type=doc.content_type,
-        uploaded_at=doc.uploaded_at,
+        id=str(doc.id),
+        filename=str(doc.filename),
+        content_type=str(doc.content_type),
+        uploaded_at=datetime.now(),  # Use current time as fallback
         tags=tags,
         pii_entities=unique_entities,
     )
@@ -181,7 +181,7 @@ async def anonymize_document(
     db: Session = Depends(get_db),
 ) -> DocumentAnonymizationResponse:
     """Anonymize a specific document."""
-    doc = document.get_by_id(db, file_id)
+    doc = get_document(db, file_id)
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
 
@@ -221,35 +221,30 @@ async def anonymize_document(
     start = time.perf_counter()
     try:
         key = settings.CRYPTO_KEY.decode()
-        pdf_xmp.anonymize_pdf(source_path, str(out_path), mapping, key)
+        pdf_xmp.anonymize_pdf(str(source_path), str(out_path), mapping, key)
         status_text = "success"
     except Exception as exc:  # pragma: no cover - depends on external libs
         status_text = f"failed: {exc}"
     end = time.perf_counter()
 
     # Update document in database
-    doc.anonymized_path = str(out_path)
+    updated_doc = update_document_anonymized_path(db, file_id, str(out_path))
 
     # Create anonymization event
-    event = AnonymizationEvent(
+    event = create_anonymization_event(
+        db,
         document_id=file_id,
-        anonymized_at=datetime.now(),
         time_taken=int(end - start),
         status=status_text,
     )
     event._pii_entities = selected
 
-    # Save to database
-    db.add(event)
-    db.commit()
-    db.refresh(doc)
-
     return DocumentAnonymizationResponse(
         id=file_id,
-        filename=doc.filename,
-        anonymized_at=event.anonymized_at,
-        time_taken=event.time_taken,
-        status=event.status,
+        filename=str(updated_doc.filename) if updated_doc else "",
+        anonymized_at=datetime.now(),  # Use current time for response
+        time_taken=int(end - start),
+        status=status_text,
         pii_entities=selected,
     )
 
@@ -263,11 +258,11 @@ async def download_document(
     Now we can use FastAPI's FileResponse to serve the file directly from disk;
     however in the future, we may use StreamingResponse to stream large files (from memory or disk) to the client.
     """
-    doc = db.query(Document).filter(Document.id == file_id).first()
+    doc = get_document(db, file_id)
     if not doc or not doc.anonymized_path:
         raise HTTPException(status_code=404, detail="Document not anonymized")
 
-    path = Path(doc.anonymized_path)
+    path = Path(str(doc.anonymized_path))
     if not path.exists():
         raise HTTPException(status_code=404, detail="Document not found")
 

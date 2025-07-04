@@ -6,7 +6,6 @@ from presidio_analyzer.nlp_engine import NlpEngineProvider
 
 from src.api.config import settings
 from src.api.utils.nlp.loader import load_nlp_engine
-from src.api.utils.nlp.spacy_engine import SpacyEngine
 from src.api.utils.patterns import (
     DutchEmailRecognizer,
     DutchIBANRecognizer,
