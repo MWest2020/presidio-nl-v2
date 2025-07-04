@@ -18,15 +18,10 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 class Base(DeclarativeBase):
-    pass
-
-
-class UnmappedAllowedBase(DeclarativeBase):
-    # Allow non-Mapped attributes without ClassVar
     __allow_unmapped__ = True
 
 
-class Document(UnmappedAllowedBase):
+class Document(Base):
     """Document model based on the ERD."""
 
     __tablename__ = "documents"
@@ -63,7 +58,7 @@ class Tag(Base):
     document: Mapped["Document"] = relationship(back_populates="tags")
 
 
-class AnonymizationEvent(UnmappedAllowedBase):
+class AnonymizationEvent(Base):
     """AnonymizationEvent model based on the ERD."""
 
     __tablename__ = "anonymization_events"
