@@ -4,8 +4,7 @@ import os
 
 
 class Settings:
-    """
-    Applicatieconfiguratie voor de Presidio-NL API.
+    """Applicatieconfiguratie voor de Presidio-NL API.
 
     Bevat standaardwaarden voor debugmodus, ondersteunde entiteiten, taal,
     en de te gebruiken NLP-modellen (spaCy of transformers).
@@ -31,8 +30,7 @@ settings: Settings = Settings()
 
 
 def setup_logging() -> None:
-    """
-    Configureer logging voor de applicatie.
+    """Configureer logging voor de applicatie.
 
     Stelt zowel een file- als streamhandler in, met DEBUG- of INFO-niveau
     afhankelijk van de configuratie. Logt naar 'app.log' en de console.

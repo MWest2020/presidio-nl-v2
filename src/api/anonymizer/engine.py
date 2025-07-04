@@ -15,8 +15,7 @@ from src.api.nlp.spacy_engine import SpacyEngine
 
 
 class ModularTextAnalyzer:
-    """
-    Modulaire analyzer-klasse voor Nederlandse tekst.
+    """Modulaire analyzer-klasse voor Nederlandse tekst.
 
     Deze klasse combineert een configureerbare NLP-engine (zoals SpaCy of een
     HuggingFace transformers-model) met pattern recognizers voor het detecteren

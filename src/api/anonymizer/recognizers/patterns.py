@@ -96,7 +96,7 @@ class DutchPostcodeRecognizer(PatternRecognizer):
         )
 
 
-# 2. BTW-/VAT-nummer (NL999999999B99 – nieuw formaat)
+# BTW-/VAT-nummer (NL999999999B99 – nieuw formaat)
 class DutchVATRecognizer(PatternRecognizer):
     def __init__(
         self, context: Optional[List[str]] = None, supported_language: str = "nl"
@@ -110,7 +110,7 @@ class DutchVATRecognizer(PatternRecognizer):
         )
 
 
-# 3. KvK-nummer (8 cijfers in Handelsregister)
+# KvK-nummer (8 cijfers in Handelsregister)
 class DutchKvKRecognizer(PatternRecognizer):
     def __init__(
         self, context: Optional[List[str]] = None, supported_language: str = "nl"

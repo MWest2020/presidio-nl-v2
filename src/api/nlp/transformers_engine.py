@@ -4,8 +4,7 @@ from src.api.nlp.base import NLPEngine
 
 
 class TransformersEngine(NLPEngine):
-    """
-    Wrapper voor een HuggingFace Transformers NER-model voor Nederlandse PII-detectie.
+    """Wrapper voor een HuggingFace Transformers NER-model voor Nederlandse PII-detectie.
     Ondersteunt elk model dat compatibel is met de transformers pipeline API.
     """
     def __init__(self, model_name: str = "GroNLP/bert-base-dutch-cased") -> None:
@@ -21,8 +20,7 @@ class TransformersEngine(NLPEngine):
         )
 
     def analyze(self, text: str, entities: list = None, language: str = "nl") -> list:
-        """
-        Voert NER-analyse uit op de tekst met het gekozen transformers-model.
+        """Voert NER-analyse uit op de tekst met het gekozen transformers-model.
 
         Args:
             text (str): De tekst om te analyseren.
