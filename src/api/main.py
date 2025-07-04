@@ -32,7 +32,7 @@ SUPPORTED_ENTITIES = ["PERSON", "LOCATION", "PHONE_NUMBER", "EMAIL", "IBAN"]
 
 
 @app.get("/entities")
-def get_supported_entities():
+def get_supported_entities() -> dict:
     """Endpoint om de lijst van ondersteunde entiteitstypen op te vragen.
 
     Returns:
@@ -70,6 +70,7 @@ class AnonymizeResponse(BaseModel):
 @app.get("/health")
 def ping() -> dict[str, str]:
     """Health check endpoint.
+
     Geeft een eenvoudige status terug om te controleren of de API draait.
     """
     return {"ping": "pong"}
@@ -87,7 +88,9 @@ def analyze_text(request: AnalyzeRequest) -> AnalyzeResponse:
     """
     try:
         results = analyzer.analyze_text(
-            request.text, request.entities, request.language
+            request.text,
+            request.entities,  # type: ignore
+            request.language,  # type: ignore
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -116,7 +119,9 @@ def anonymize_text(request: AnalyzeRequest) -> AnonymizeResponse:
     """
     try:
         anonymized = analyzer.anonymize_text(
-            request.text, request.entities, request.language
+            request.text,
+            request.entities,  # type: ignore
+            request.language,  # type: ignore
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

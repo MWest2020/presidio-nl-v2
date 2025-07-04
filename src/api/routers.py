@@ -18,6 +18,7 @@ analyzer = ModularTextAnalyzer()
 @router.get("/health")
 def ping() -> dict[str, str]:
     """Health check endpoint.
+
     Geeft een eenvoudige status terug om te controleren of de API draait.
     """
     return {"ping": "pong"}
@@ -35,7 +36,9 @@ def analyze_text(request: AnalyzeRequest) -> AnalyzeResponse:
     """
     try:
         results = analyzer.analyze_text(
-            request.text, request.entities, request.language
+            request.text,
+            request.entities,  # type: ignore
+            request.language,  # type: ignore
         )
     except Exception as e:
         logging.error(f"Error during analysis: {e}")
@@ -68,6 +71,8 @@ def anonymize_text(request: AnalyzeRequest) -> AnonymizeResponse:
         AnonymizeResponse: Response met originele en geanonimiseerde tekst.
     """
     anonymized = analyzer.anonymize_text(
-        request.text, request.entities, request.language
+        request.text,
+        request.entities,  # type: ignore
+        request.language,  # type: ignore
     )
     return AnonymizeResponse(text=request.text, anonymized=anonymized)
