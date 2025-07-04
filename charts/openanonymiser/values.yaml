@@ -29,23 +29,13 @@ securityContext:
   runAsUser: 1000
 
 service:
-  type: ClusterIP
+  type: LoadBalancer
   port: 8080
 
 ingress:
   enabled: true
   className: nginx
-  annotations:
-    nginx.ingress.kubernetes.io/proxy-body-size: "4G"
-    nginx.ingress.kubernetes.io/server-snippet: |-
-      server_tokens off;
-      proxy_hide_header X-Powered-By;
-    nginx.ingress.kubernetes.io/enable-cors: "true"
-    nginx.ingress.kubernetes.io/cors-allow-headers: "X-Forwarded-For"
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+  annotations: {}
   hosts:
     - host: "api.openanonymiser.commonground.nu"
       paths:
@@ -56,10 +46,7 @@ ingress:
               name: openanonymiser
               port:
                 number: 8080
-  tls:
-    - hosts:
-        - "api.openanonymiser.commonground.nu"
-      secretName: "openanonymiser-tls"
+  tls: []
 
 resources:
   limits:
