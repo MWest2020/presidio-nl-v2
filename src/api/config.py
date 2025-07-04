@@ -1,15 +1,14 @@
-import logging
 import logging.config
 import os
 
 
 class Settings:
-    """
-    Applicatieconfiguratie voor de Presidio-NL API.
+    """Applicatieconfiguratie voor de Presidio-NL API.
 
     Bevat standaardwaarden voor debugmodus, ondersteunde entiteiten, taal,
     en de te gebruiken NLP-modellen (spaCy of transformers).
     """
+
     DEBUG: bool = os.getenv("DEBUG", "true").lower() == "true"
     DEFAULT_ENTITIES = [
         "PERSON",
@@ -21,18 +20,19 @@ class Settings:
         "ADDRESS",
     ]
 
-    DEFAULT_LANGUAGE = "nl"
-    DEFAULT_NLP_ENGINE = "spacy"
-    DEFAULT_SPACY_MODEL = "nl_core_news_md"
-    DEFAULT_TRANSFORMERS_MODEL = "pdelobelle/robbert-v2-dutch-base"
+    DEFAULT_LANGUAGE = os.getenv("DEFAULT_LANGUAGE", "nl")
+    DEFAULT_NLP_ENGINE = os.getenv("DEFAULT_NLP_ENGINE", "spacy").lower()
+    DEFAULT_SPACY_MODEL = os.getenv("DEFAULT_SPACY_MODEL", "nl_core_news_md")
+    DEFAULT_TRANSFORMERS_MODEL = os.getenv(
+        "DEFAULT_TRANSFORMERS_MODEL", "pdelobelle/robbert-v2-dutch-base"
+    )
 
 
 settings: Settings = Settings()
 
 
 def setup_logging() -> None:
-    """
-    Configureer logging voor de applicatie.
+    """Configureer logging voor de applicatie.
 
     Stelt zowel een file- als streamhandler in, met DEBUG- of INFO-niveau
     afhankelijk van de configuratie. Logt naar 'app.log' en de console.

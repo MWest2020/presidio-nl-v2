@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  presidio-nl:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8080"
+    environment:
+      - UVICORN_SERVER_MODE=development
+      - DEBUG=true
+      - DEFAULT_NLP_ENGINE=spacy
+      - DEFAULT_SPACY_MODEL=nl_core_news_md
+      - DEFAULT_TRANSFORMERS_MODEL=pdelobelle/robbert-v2-dutch-base
+    volumes:
+      - presidio-files:/app/temp/
+      - presidio-logs:/app/logs/
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - presidio-network
+
+volumes:
+  presidio-files:
+    driver: local
+  presidio-logs:
+    driver: local
+
+networks:
+  presidio-network:
+    driver: bridge 

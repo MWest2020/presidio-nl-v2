@@ -15,8 +15,7 @@ from src.api.nlp.spacy_engine import SpacyEngine
 
 
 class ModularTextAnalyzer:
-    """
-    Modulaire analyzer-klasse voor Nederlandse tekst.
+    """Modulaire analyzer-klasse voor Nederlandse tekst.
 
     Deze klasse combineert een configureerbare NLP-engine (zoals SpaCy of een
     HuggingFace transformers-model) met pattern recognizers voor het detecteren
@@ -132,7 +131,7 @@ class ModularTextAnalyzer:
     def anonymize_text(
         self,
         text: str,
-        entities: list = None,
+        entities: Optional[List] = None,
         language: str = settings.DEFAULT_LANGUAGE,
     ) -> str:
         """Function to anonymize text by replacing detected entities with placeholders.
@@ -145,7 +144,7 @@ class ModularTextAnalyzer:
         Returns:
             str: the anonymized text with placeholders for detected entities.
         """
-        results = self.analyze_text(text, entities, language)
+        results = self.analyze_text(text, entities, language)  # type: ignore
 
         # Sorteer op start, zodat vervangen van achter naar voren kan
         sorted_results = sorted(results, key=lambda x: x["start"], reverse=True)

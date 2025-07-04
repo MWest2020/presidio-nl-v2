@@ -1,9 +1,10 @@
-from app.anonymizer.recognizers.patterns import IBANRecognizer
+# NOTE: move this back to root to enable import from src.api
+from src.api.anonymizer.recognizers.patterns import DutchIBANRecognizer
 
 
-def test_iban_recognizer():
+def test_iban_recognizer() -> None:
     # Initialize the recognizer
-    recognizer = IBANRecognizer()
+    recognizer = DutchIBANRecognizer()
 
     # Test cases
     test_cases = [
