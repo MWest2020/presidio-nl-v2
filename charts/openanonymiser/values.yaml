@@ -47,7 +47,7 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
   hosts:
-    - host: "openanonymiser.example.com"
+    - host: "api.openanonymiser.commonground.nu"
       paths:
         - path: /
           pathType: Prefix
@@ -58,7 +58,7 @@ ingress:
                 number: 8080
   tls:
     - hosts:
-        - "openanonymiser.example.com"
+        - "api.openanonymiser.commonground.nu"
       secretName: "openanonymiser-tls"
 
 resources:
