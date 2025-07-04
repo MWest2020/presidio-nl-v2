@@ -96,7 +96,7 @@ def anonymize_pdf(
     doc.save(output_path, incremental=incremental_save)
 
     _embed_occurrences_xmp(output_path, occurrences)
-    return occurrences  # For further processing/testing
+    return occurrences  # For further processing/testing # type: ignore
 
 
 def extract_annotations(

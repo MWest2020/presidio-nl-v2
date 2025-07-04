@@ -163,7 +163,6 @@ async def get_document_metadata(
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    # Convert DB model to DTO
     tags = [DocumentTagDto(id=str(tag.id), name=str(tag.name)) for tag in doc.tags]
 
     if get_pii_entities:
@@ -196,7 +195,6 @@ async def anonymize_document(
     source_path = doc.source_path
     analyzer = ModularTextAnalyzer()
 
-    # Get entities from the document or extract them
     entities = getattr(doc, "_entities", None)
     if not entities:
         text = ""
@@ -277,5 +275,7 @@ async def download_document(
     background = BackgroundTasks()
     if not keep_on_server:
         background.add_task(path.unlink)
+        source_path = Path(str(doc.source_path))
+        background.add_task(source_path.unlink)
 
     return FileResponse(path=str(path), filename=path.name, background=background)

@@ -11,6 +11,8 @@ app = FastAPI(
     description="API voor Nederlandse tekst analyse en anonimisatie",
     version="0.3.0",
     docs_url="/api/v1/docs",
+    openapi_url="/api/v1/openapi.json",
+    redoc_url="/api/v1/redoc",
 )
 
 app.add_middleware(
