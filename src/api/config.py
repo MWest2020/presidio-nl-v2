@@ -49,6 +49,8 @@ def setup_logging() -> None:
     afhankelijk van de configuratie. Logt naar 'app.log' en de console.
     """
     console_log_level = "DEBUG" if settings.DEBUG else "INFO"
+    log_dir = os.getenv("LOG_DIR", "logs")
+    os.makedirs(log_dir, exist_ok=True)
     logging.config.dictConfig(
         {
             "version": 1,
@@ -63,7 +65,7 @@ def setup_logging() -> None:
                     "class": "logging.FileHandler",
                     "formatter": "default",
                     "level": "DEBUG",
-                    "filename": "app.log",
+                    "filename": os.path.join(log_dir, "app.log"),
                 },
                 "stream": {
                     "class": "logging.StreamHandler",
