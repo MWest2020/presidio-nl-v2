@@ -15,7 +15,6 @@ services:
       - DEFAULT_TRANSFORMERS_MODEL=pdelobelle/robbert-v2-dutch-base
     volumes:
       - ./src:/app/src:ro  # Mount source code for development
-      - ./app.log:/app/app.log  # Mount log file
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
@@ -42,7 +41,6 @@ services:
     volumes:
       - ./src:/app/src  # Full mount for hot-reload
       - ./api.py:/app/api.py  # Mount main entry point
-      - ./app.log:/app/app.log
     command: ["uv", "run", "api.py", "--host=0.0.0.0", "--port=8080", "--env=development"]
     restart: unless-stopped
     profiles:
