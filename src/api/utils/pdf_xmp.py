@@ -1,3 +1,4 @@
+import hashlib
 import re
 import xml.sax.saxutils as saxutils
 from typing import Dict, List, Optional, Tuple
@@ -5,10 +6,13 @@ from typing import Dict, List, Optional, Tuple
 import pikepdf
 import pymupdf
 
-from src.api.utils.crypto import (
+# from src.api.utils
+from crypto import (
     aes_gcm_encrypt as encrypt_entity,
 )
-from src.api.utils.crypto import (
+
+# from src.api.utils.
+from crypto import (
     fingerprint_sha256 as get_fingerprint,
 )
 
@@ -55,6 +59,7 @@ def anonymize_pdf(
     Returns:
         List[dict]: List of occurrences with metadata about each redaction.
     """
+    hashed_key = hashlib.sha256(private_key.encode()).digest()
     masks = {**_DEFAULT_ENTITY_MASK, **(entity_masks or {})}
 
     doc = pymupdf.open(input_path)
@@ -73,7 +78,9 @@ def anonymize_pdf(
                     "rect": (r.x0, r.y0, r.x1, r.y1),
                     "entity_type": entity_type,
                     "entity_mask": mask,
-                    "encrypted_entity": encrypt_entity(data=target, key=private_key),
+                    "encrypted_entity": encrypt_entity(
+                        data=target.encode("utf-8"), key=hashed_key
+                    ),
                     "key_fingerprint": get_fingerprint(data=private_key),
                 }
                 occurrences.append(occ)
@@ -95,7 +102,7 @@ def extract_annotations(input_path: str) -> List[dict]:
     with pikepdf.Pdf.open(input_path) as pdf:
         if "/Metadata" not in pdf.Root:
             return []
-        xmp = pdf.Root.Metadata.read_bytes().decode("utf‑8", errors="replace")
+        xmp = pdf.Root.Metadata.read_bytes().decode("utf-8", errors="replace")
         pattern = re.compile(
             r"<rdf:Description [^>]*custom:Id=\"([^\"]+)\"([^>]*)/>",
             re.DOTALL,
@@ -118,7 +125,7 @@ def _embed_occurrences_xmp(pdf_path: str, occs: List[_Occurrence]) -> None:
             "custom:EntityType": o["entity_type"],
             "custom:EntityMask": o["entity_mask"],
             "custom:EncryptedEntity": o["encrypted_entity"],
-            "custom:Fingerprint": o["fingerprint"],
+            "custom:Fingerprint": o["key_fingerprint"],
         }
         escaped = {k: saxutils.escape(v, {'"': "&quot;"}) for k, v in attrs.items()}
         attr_str = " ".join(f'{k}="{v}"' for k, v in escaped.items())
@@ -144,6 +151,9 @@ def _attrs_to_dict(attr_block: str) -> dict:
 
 
 if __name__ == "__main__":
+    res = extract_annotations("test.pdf")
+    print(res)
+    exit(0)
     import argparse
 
     parser = argparse.ArgumentParser(description="PDF anonymiser util")
@@ -155,6 +165,11 @@ if __name__ == "__main__":
         metavar="S=TYPE",
         help="Replacement mapping e.g. 'Bob=person' 'NL91ABNA=iban'",
     )
+    parser.add_argument(
+        "--key",
+        default="your_private_key_here",
+        help="Private key for encryption (will be hashed to appropriate length)",
+    )
     args = parser.parse_args()
 
     mapping = {}
@@ -165,5 +180,5 @@ if __name__ == "__main__":
         except ValueError:
             parser.error(f"Invalid mapping pair: {pair}")
 
-    anonymize_pdf(args.input, args.output, mapping)
+    anonymize_pdf(args.input, args.output, mapping, args.key)
     print("Done. Embedded", len(mapping), "PII item(s).")
