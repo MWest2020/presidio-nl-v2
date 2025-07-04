@@ -27,6 +27,9 @@ class Settings:
         "DEFAULT_TRANSFORMERS_MODEL", "pdelobelle/robbert-v2-dutch-base"
     )
     ALLOWED_ORIGINS = ["*"]
+    SUPPORTED_UPLOAD_EXTENSIONS = [
+        "pdf",
+    ]
 
 
 settings: Settings = Settings()
