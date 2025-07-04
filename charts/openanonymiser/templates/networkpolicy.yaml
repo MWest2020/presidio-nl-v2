@@ -2,7 +2,7 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: {{ include "presidio-nl-v2.fullname" . }}-allow-namespaces
+  name: {{ include "openanonymiser.fullname" . }}-allow-namespaces
 spec:
   podSelector: {}
   ingress:

@@ -1,10 +1,10 @@
 {{/* Generate chart name */}}
-{{- define "presidio-nl-v2.name" -}}
+{{- define "openanonymiser.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{/* Generate full name */}}
-{{- define "presidio-nl-v2.fullname" -}}
+{{- define "openanonymiser.fullname" -}}
 {{- if .Values.fullnameOverride -}}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" -}}
 {{- else -}}
@@ -14,12 +14,12 @@
 {{- end -}}
 
 {{/* Generate service account name */}}
-{{- define "presidio-nl-v2.serviceAccountName" -}}
+{{- define "openanonymiser.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create -}}
 {{- if .Values.serviceAccount.name -}}
 {{- .Values.serviceAccount.name -}}
 {{- else -}}
-{{- include "presidio-nl-v2.fullname" . -}}
+{{- include "openanonymiser.fullname" . -}}
 {{- end -}}
 {{- else -}}
 {{- "default" -}}

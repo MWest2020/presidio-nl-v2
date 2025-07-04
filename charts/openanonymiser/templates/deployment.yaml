@@ -1,9 +1,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "presidio-nl-v2.fullname" . }}
+  name: {{ include "openanonymiser.fullname" . }}
   labels:
-    app: {{ include "presidio-nl-v2.name" . }}
+    app: {{ include "openanonymiser.name" . }}
     chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
@@ -11,15 +11,15 @@ spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: {{ include "presidio-nl-v2.name" . }}
+      app: {{ include "openanonymiser.name" . }}
   template:
     metadata:
       labels:
-        app: {{ include "presidio-nl-v2.name" . }}
+        app: {{ include "openanonymiser.name" . }}
       annotations:
         {{- toYaml .Values.podAnnotations | nindent 8 }}
     spec:
-      serviceAccountName: {{ include "presidio-nl-v2.serviceAccountName" . }}
+      serviceAccountName: {{ include "openanonymiser.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:

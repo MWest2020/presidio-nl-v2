@@ -2,14 +2,14 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ include "presidio-nl-v2.fullname" . }}
+  name: {{ include "openanonymiser.fullname" . }}
   labels:
-    app: {{ include "presidio-nl-v2.name" . }}
+    app: {{ include "openanonymiser.name" . }}
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ include "presidio-nl-v2.fullname" . }}
+          name: {{ include "openanonymiser.fullname" . }}
   minReplicas: {{ .Values.autoscaling.minReplicas }}
   maxReplicas: {{ .Values.autoscaling.maxReplicas }}
   metrics:
