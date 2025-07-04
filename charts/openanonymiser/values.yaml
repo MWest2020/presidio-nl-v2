@@ -87,4 +87,11 @@ app:
     port: 8080
     internalOnly: false
   storage:
-    cleanupInterval: 3600 
+    cleanupInterval: 3600
+
+volumeMounts:
+  - name: logs-volume
+    mountPath: /app/logs
+volumes:
+  - name: logs-volume
+    emptyDir: {} 
