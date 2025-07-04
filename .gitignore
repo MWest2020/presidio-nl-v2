@@ -5,6 +5,7 @@ __pycache__/
 
 # APP specific
 /temp/
+*.db 
 
 # C extensions
 *.so
