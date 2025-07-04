@@ -169,6 +169,8 @@ async def get_document_metadata(
     if get_pii_entities:
         text = extract_text_from_pdf(Path(doc.source_path))
         _, unique_entities = await extract_unique_entities(text)
+    else:
+        unique_entities = []
 
     return DocumentDto(
         id=str(doc.id),
