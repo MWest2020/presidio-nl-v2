@@ -4,17 +4,23 @@ FROM python:3.12.10-slim-bookworm
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 RUN groupadd -r presidio && useradd --no-log-init -r -g presidio presidio
-USER presidio
-    
+
 WORKDIR /app
 
-COPY pyproject.toml uv.lock ./
+# Create necessary directories and set permissions
+RUN mkdir -p /home/presidio/.cache/uv && \
+    chown -R presidio:presidio /home/presidio/.cache && \
+    chown -R presidio:presidio /app
+
+COPY --chown=presidio:presidio pyproject.toml uv.lock ./
+
+USER presidio
 
 RUN uv sync --frozen --no-dev --no-cache
 
-COPY src/api ./src/api
+COPY --chown=presidio:presidio src/api ./src/api
 
-COPY api.py ./
+COPY --chown=presidio:presidio api.py ./
 
 EXPOSE 8080
 
