@@ -15,6 +15,7 @@ dependencies = [
     "python-dotenv>=1.1.0",
     "pycryptodome>=3.23.0",
     "sqlalchemy>=2.0.41",
+    "pytest>=8.4.1",
 ]
 authors = [
     { name = "Mark Westerweel", email = "mark.westerweel@conduction.nl" },

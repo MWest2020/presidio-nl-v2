@@ -88,9 +88,9 @@ async def upload_document(
 
         text = ""
         try:
-            import fitz  # PyMuPDF
+            import pymupdf  # PyMuPDF
 
-            doc = fitz.open(str(source_path))
+            doc = pymupdf.open(str(source_path))
             text = "\n".join(page.get_text() for page in doc)
             doc.close()
         except Exception:
@@ -193,9 +193,9 @@ async def anonymize_document(
     if not entities:
         text = ""
         try:
-            import fitz
+            import pymupdf
 
-            pdf_doc = fitz.open(source_path)
+            pdf_doc = pymupdf.open(source_path)
             text = "\n".join(p.get_text() for p in pdf_doc)
             pdf_doc.close()
         except Exception:
