@@ -1,16 +1,15 @@
 from datetime import datetime
 from typing import Dict, Generator, List, Optional
 
-from sqlalchemy import (
-    Column,
-    DateTime,
-    ForeignKey,
-    Integer,
-    String,
-    Text,
-    create_engine,
+from sqlalchemy import ForeignKey, String, Text, create_engine, func
+from sqlalchemy.orm import (
+    DeclarativeBase,
+    Mapped,
+    Session,
+    mapped_column,
+    relationship,
+    sessionmaker,
 )
-from sqlalchemy.orm import DeclarativeBase, Session, relationship, sessionmaker
 
 from src.api.config import settings
 
@@ -22,22 +21,29 @@ class Base(DeclarativeBase):
     pass
 
 
-class Document(Base):
+class UnmappedAllowedBase(DeclarativeBase):
+    # Allow non-Mapped attributes without ClassVar
+    __allow_unmapped__ = True
+
+
+class Document(UnmappedAllowedBase):
     """Document model based on the ERD."""
 
     __tablename__ = "documents"
 
-    id = Column(String(32), primary_key=True)
-    filename = Column(Text, nullable=False)
-    content_type = Column(Text, nullable=False)
-    uploaded_at = Column(DateTime, default=datetime.now)
-    source_path = Column(Text, nullable=False)
-    anonymized_path = Column(Text, nullable=True)
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    filename: Mapped[str] = mapped_column(Text, nullable=False)
+    content_type: Mapped[str] = mapped_column(Text, nullable=False)
+    uploaded_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    source_path: Mapped[str] = mapped_column(Text, nullable=False)
+    anonymized_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # Relationships
-    tags = relationship("Tag", back_populates="document", cascade="all, delete-orphan")
-    anonymization_events = relationship(
-        "AnonymizationEvent", back_populates="document", cascade="all, delete-orphan"
+    tags: Mapped[List["Tag"]] = relationship(
+        back_populates="document", cascade="all, delete-orphan"
+    )
+    anonymization_events: Mapped[List["AnonymizationEvent"]] = relationship(
+        back_populates="document", cascade="all, delete-orphan"
     )
 
     # Store entities as JSON in memory (not in database)
@@ -49,27 +55,27 @@ class Tag(Base):
 
     __tablename__ = "tags"
 
-    id = Column(String(32), primary_key=True)
-    document_id = Column(String(32), ForeignKey("documents.id"))
-    name = Column(Text, nullable=False)
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    document_id: Mapped[str] = mapped_column(String(32), ForeignKey("documents.id"))
+    name: Mapped[str] = mapped_column(Text, nullable=False)
 
     # Relationship
-    document = relationship("Document", back_populates="tags")
+    document: Mapped["Document"] = relationship(back_populates="tags")
 
 
-class AnonymizationEvent(Base):
+class AnonymizationEvent(UnmappedAllowedBase):
     """AnonymizationEvent model based on the ERD."""
 
     __tablename__ = "anonymization_events"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    document_id = Column(String(32), ForeignKey("documents.id"))
-    anonymized_at = Column(DateTime, default=datetime.now)
-    time_taken = Column(Integer, nullable=False)  # Seconds
-    status = Column(Text, nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    document_id: Mapped[str] = mapped_column(String(32), ForeignKey("documents.id"))
+    anonymized_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    time_taken: Mapped[int] = mapped_column(nullable=False)  # Seconds
+    status: Mapped[str] = mapped_column(Text, nullable=False)
 
     # Relationship
-    document = relationship("Document", back_populates="anonymization_events")
+    document: Mapped["Document"] = relationship(back_populates="anonymization_events")
 
     # Store PII entities as JSON in memory (not in database)
     _pii_entities: Optional[List[Dict[str, str]]] = None
