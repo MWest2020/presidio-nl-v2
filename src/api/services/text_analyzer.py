@@ -6,7 +6,6 @@ from presidio_analyzer.nlp_engine import NlpEngineProvider
 
 from src.api.config import settings
 from src.api.utils.nlp.loader import load_nlp_engine
-from src.api.utils.nlp.spacy_engine import SpacyEngine
 from src.api.utils.patterns import (
     DutchEmailRecognizer,
     DutchIBANRecognizer,
@@ -41,7 +40,7 @@ class ModularTextAnalyzer:
                 if nlp_engine == "spacy"
                 else settings.DEFAULT_TRANSFORMERS_MODEL
             )
-        self.nlp_engine: SpacyEngine = load_nlp_engine(
+        self.nlp_engine = load_nlp_engine(
             config_dict={"nlp_engine": nlp_engine, "model_name": model_name}
         )
 

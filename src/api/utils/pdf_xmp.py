@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import re
 import uuid
 import xml.sax.saxutils as saxutils
@@ -95,7 +96,7 @@ def anonymize_pdf(
     doc.save(output_path, incremental=incremental_save)
 
     _embed_occurrences_xmp(output_path, occurrences)
-    return occurrences  # For further processing/testing
+    return occurrences  # For further processing/testing # type: ignore
 
 
 def extract_annotations(
@@ -144,7 +145,7 @@ def _embed_occurrences_xmp(pdf_path: str, occs: List[_Occurrence]) -> None:
             "custom:EntityType": o["entity_type"],
             "custom:EntityMask": o["entity_mask"],
             "custom:EncryptedEntity": o["encrypted_entity"],
-            "custom:Fingerprint": o["fingerprint"],
+            "custom:Fingerprint": o["key_fingerprint"],
         }
         # XML-escape values (quotes, ampersands, etc.)
         esc = {k: saxutils.escape(v, {'"': "&quot;"}) for k, v in attrs.items()}
@@ -169,12 +170,9 @@ def _embed_occurrences_xmp(pdf_path: str, occs: List[_Occurrence]) -> None:
     with pikepdf.Pdf.open(pdf_path, allow_overwriting_input=True) as pdf:
         pdf.Root.Metadata = pdf.make_stream(xmp.encode("utf-8"))
         pdf.save(pdf_path)
-
-
-def _attrs_to_dict(attr_block: str) -> dict:
-    """Convert the attribute section of an XML tag into a dict."""
-    matches = re.findall(r"(custom:[^=]+)=\"([^\"]*)\"", attr_block)
-    return {k.split(":", 1)[1]: saxutils.unescape(v) for k, v in matches}
+        logging.debug(
+            f"Embedded {len(occs)} occurrences in XMP metadata for {pdf_path}"
+        )
 
 
 if __name__ == "__main__":

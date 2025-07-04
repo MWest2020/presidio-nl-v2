@@ -35,8 +35,11 @@ class Settings:
         "pdf",
     ]
     CRYPTO_KEY = (
-        os.getenv("CRYPTO_KEY").encode("utf-8") if os.getenv("CRYPTO_KEY") else None
+        os.getenv("CRYPTO_KEY").encode("utf-8")
+        if os.getenv("CRYPTO_KEY")
+        else b"secret"
     )
+    DATABASE_URL = "sqlite:///./openanonymiser.db"
 
 
 settings: Settings = Settings()
@@ -76,7 +79,12 @@ def setup_logging() -> None:
                 "handlers": ["file", "stream"],
             },
             "loggers": {
-                # "add custom loggers to disable here!"
+                "python_multipart.multipart": {
+                    "level": "WARNING",
+                    "handlers": ["file", "stream"],
+                    "propagate": False,
+                },
+                # Add other custom loggers to disable here if needed
             },
         }
     )
