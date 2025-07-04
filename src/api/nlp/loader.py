@@ -1,18 +1,20 @@
-from typing import Union, overload
+from typing import Optional, Union, overload
 
 from src.api.nlp.spacy_engine import SpacyEngine
-from src.api.nlp.transformers_engine import TransformersEngine
+from src.api.nlp.transformers_engine import NLPEngine, TransformersEngine
 
 
 @overload
-def load_nlp_engine(config_dict: dict = None) -> SpacyEngine: ...
+def load_nlp_engine(config_dict: None = None) -> SpacyEngine: ...
 
 
 @overload
-def load_nlp_engine(config_dict: dict = None) -> TransformersEngine: ...
+def load_nlp_engine(config_dict: dict) -> NLPEngine: ...
 
 
-def load_nlp_engine(config_dict: dict = None) -> Union[SpacyEngine, TransformersEngine]:
+def load_nlp_engine(
+    config_dict: Optional[dict] = None,
+) -> Union[SpacyEngine, TransformersEngine]:
     """Load the NLP engine based on the provided configuration.
 
     Args:
