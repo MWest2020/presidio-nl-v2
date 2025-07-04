@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from transformers import pipeline
 
-from src.api.nlp.base import NLPEngine
+from src.api.utils.nlp.base import NLPEngine
 
 
 class TransformersEngine(NLPEngine):

@@ -3,7 +3,7 @@ from typing import List, Optional
 import spacy
 
 from src.api.config import settings
-from src.api.nlp.base import NLPEngine
+from src.api.utils.nlp.base import NLPEngine
 
 
 class SpacyEngine(NLPEngine):

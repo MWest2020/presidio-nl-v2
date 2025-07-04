@@ -41,7 +41,7 @@ class ModularTextAnalyzer:
                 if nlp_engine == "spacy"
                 else settings.DEFAULT_TRANSFORMERS_MODEL
             )
-        self.nlp_engine: SpacyEngine = load_nlp_engine(
+        self.nlp_engine = load_nlp_engine(
             config_dict={"nlp_engine": nlp_engine, "model_name": model_name}
         )
 
