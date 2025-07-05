@@ -41,6 +41,9 @@ class Settings:
     )
     DATABASE_URL = "sqlite:///./openanonymiser.db"
 
+    BASIC_AUTH_USERNAME = os.getenv("BASIC_AUTH_USERNAME", "admin")
+    BASIC_AUTH_PASSWORD = os.getenv("BASIC_AUTH_PASSWORD", "password")
+
 
 settings: Settings = Settings()
 

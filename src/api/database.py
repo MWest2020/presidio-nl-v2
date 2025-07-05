@@ -1,20 +1,13 @@
 from datetime import datetime
-from typing import Dict, Generator, List, Optional
+from typing import Dict, List, Optional
 
-from sqlalchemy import ForeignKey, String, Text, create_engine, func
+from sqlalchemy import ForeignKey, String, Text, func
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
-    Session,
     mapped_column,
     relationship,
-    sessionmaker,
 )
-
-from src.api.config import settings
-
-engine = create_engine(settings.DATABASE_URL, connect_args={"check_same_thread": False})
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 class Base(DeclarativeBase):
@@ -82,16 +75,3 @@ class AnonymizationEvent(Base):
     @pii_entities.setter
     def pii_entities(self, value: List[Dict[str, str]]) -> None:
         self._pii_entities = value
-
-
-# Create the database tables
-Base.metadata.create_all(bind=engine)
-
-
-# Dependency
-def get_db() -> Generator[Session, None, None]:
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
