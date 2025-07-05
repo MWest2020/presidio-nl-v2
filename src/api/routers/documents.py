@@ -5,7 +5,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-import pymupdf
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -27,7 +26,7 @@ from src.api.crud import (
     get_document,
     update_document_anonymized_path,
 )
-from src.api.database import get_db
+from src.api.dependencies import get_db, get_user
 from src.api.dtos import (
     AddDocumentResponse,
     AddDocumentResponseInvalid,
@@ -61,6 +60,7 @@ async def upload_document(
     files: list[UploadFile] = FastAPIFile(...),
     tags: Optional[list[str]] = None,
     db: Session = Depends(get_db),
+    # username: str = Depends(get_user),
 ) -> AddDocumentResponse:
     if any(
         f
@@ -88,9 +88,11 @@ async def upload_document(
         with open(source_path, "wb") as f:
             f.write(content)
 
-        text = extract_text_from_pdf(source_path)
+        text = pdf_xmp.extract_text_from_pdf(source_path)
 
-        entities, unique = await extract_unique_entities(text)
+        entities, unique = await pdf_xmp.extract_unique_entities(
+            text=text, analyzer=analyzer
+        )
 
         # Create document in database
         db_document = create_document(
@@ -127,36 +129,12 @@ async def upload_document(
     return AddDocumentResponseSuccess(files=docs)
 
 
-def extract_text_from_pdf(source_path: Path) -> str:
-    text = ""
-    try:
-        doc = pymupdf.open(str(source_path))
-        text = "\n".join(page.get_text() for page in doc)
-        doc.close()
-    except Exception:
-        text = ""
-    return text
-
-
-async def extract_unique_entities(
-    text: str,
-) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
-    entities = analyzer.analyze_text(text) if text else []
-    unique: list[dict[str, str]] = []
-    seen = set()
-    for ent in entities:
-        key = (ent["entity_type"], ent["text"])
-        if key not in seen:
-            unique.append({"entity_type": ent["entity_type"], "text": ent["text"]})
-            seen.add(key)
-    return entities, unique
-
-
 @documents_router.get("/{file_id}/metadata", response_model=DocumentDto)
 async def get_document_metadata(
     file_id: str,
     get_pii_entities: bool = False,
     db: Session = Depends(get_db),
+    # username: str = Depends(get_user),
 ) -> DocumentDto:
     """Get metadata for a specific document. Same response as upload."""
     doc = get_document(db, file_id)
@@ -166,8 +144,10 @@ async def get_document_metadata(
     tags = [DocumentTagDto(id=str(tag.id), name=str(tag.name)) for tag in doc.tags]
 
     if get_pii_entities:
-        text = extract_text_from_pdf(Path(doc.source_path))
-        _, unique_entities = await extract_unique_entities(text)
+        text = pdf_xmp.extract_text_from_pdf(Path(doc.source_path))
+        _, unique_entities = await pdf_xmp.extract_unique_entities(
+            text=text, analyzer=analyzer
+        )
     else:
         unique_entities = []
 
@@ -186,6 +166,7 @@ async def anonymize_document(
     file_id: str,
     request_body: DocumentAnonymizationRequest,
     db: Session = Depends(get_db),
+    # username: str = Depends(get_user),
 ) -> DocumentAnonymizationResponse:
     """Anonymize a specific document."""
     doc = get_document(db, file_id)
@@ -257,7 +238,10 @@ async def anonymize_document(
 
 @documents_router.get("/{file_id}/download")
 async def download_document(
-    file_id: str, keep_on_server: bool = False, db: Session = Depends(get_db)
+    file_id: str,
+    keep_on_server: bool = False,
+    db: Session = Depends(get_db),
+    # username: str = Depends(get_user),
 ) -> FileResponse:
     """Download a specific document.
 

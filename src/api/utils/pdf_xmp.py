@@ -3,11 +3,13 @@ import logging
 import re
 import uuid
 import xml.sax.saxutils as saxutils
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import pikepdf
 import pymupdf
 
+from src.api.services.text_analyzer import ModularTextAnalyzer
 from src.api.utils.crypto import (
     aes_gcm_decrypt as decrypt_entity,
 )
@@ -36,6 +38,42 @@ class _Occurrence(dict):
     entity_mask: str
     encrypted_entity: str
     fingerprint: str
+
+
+def extract_text_from_pdf(source_path: Path) -> str:
+    text = ""
+    try:
+        doc = pymupdf.open(str(source_path))
+        text = "\n".join(page.get_text() for page in doc)
+        doc.close()
+    except Exception:
+        text = ""
+    return text
+
+
+async def extract_unique_entities(
+    analyzer: ModularTextAnalyzer,
+    text: str,
+) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+    """Extract unique entities from the given text using the provided analyzer.
+
+    Args:
+        analyzer (ModularTextAnalyzer): The text analyzer instance to use for entity extraction.
+        text (str): The text to analyze for entities.
+
+    Returns:
+        tuple[list[dict[str, str]], list[dict[str, str]]]: the first list contains all entities found,
+            the second list contains unique entities with their types and text.
+    """
+    entities = analyzer.analyze_text(text) if text else []
+    unique: list[dict[str, str]] = []
+    seen = set()
+    for ent in entities:
+        key = (ent["entity_type"], ent["text"])
+        if key not in seen:
+            unique.append({"entity_type": ent["entity_type"], "text": ent["text"]})
+            seen.add(key)
+    return entities, unique
 
 
 def anonymize_pdf(
