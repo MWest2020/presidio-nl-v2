@@ -339,16 +339,68 @@ async def anonymize_document(
     start = time.perf_counter()
     try:
         key = settings.CRYPTO_KEY.decode()
-        pdf_xmp.anonymize_pdf(str(source_path), str(out_path), mapping, key)
-        status_text = "success"
+        logger.info(
+            f"Starting anonymization for document {file_id} with {len(mapping)} entities"
+        )
+
+        # Verify the source path exists
+        if not os.path.exists(source_path):
+            raise FileNotFoundError(f"Source file {source_path} not found")
+
+        # Ensure the output directory exists
+        anonym_dir.mkdir(parents=True, exist_ok=True)
+
+        # Run the anonymization process
+        occurrences = pdf_xmp.anonymize_pdf(
+            str(source_path), str(out_path), mapping, key
+        )
+
+        # Check if the output file was created successfully
+        if not os.path.exists(out_path) or os.path.getsize(out_path) == 0:
+            raise ValueError("Anonymization failed to produce valid output file")
+
+        # Verify the number of occurrences matches expected
+        if len(occurrences) != len(mapping):
+            logger.warning(
+                f"Only {len(occurrences)} out of {len(mapping)} entities were processed"
+            )
+
+        status_text = f"success ({len(occurrences)} entities processed)"
+    except FileNotFoundError as exc:
+        logger.error(f"File not found error: {exc}", exc_info=True)
+        status_text = f"failed: {exc}"
+    except ValueError as exc:
+        logger.error(f"Value error during anonymization: {exc}", exc_info=True)
+        status_text = f"failed: {exc}"
     except Exception as exc:  # pragma: no cover - depends on external libs
+        logger.error(f"Unexpected error during anonymization: {exc}", exc_info=True)
         status_text = f"failed: {exc}"
     end = time.perf_counter()
 
-    # Update document in database
+    # Check if anonymization was successful before updating the database
+    if status_text.startswith("failed"):
+        # Remove the output file if it exists but anonymization failed
+        if os.path.exists(out_path):
+            os.unlink(out_path)
+
+        # Create anonymization event to record the failure
+        event = create_anonymization_event(
+            db,
+            document_id=file_id,
+            time_taken=int(end - start),
+            status=status_text,
+        )
+        event._pii_entities = selected
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Document anonymization failed: {status_text}",
+        )
+
+    # Update document in database with the new anonymized path
     updated_doc = update_document_anonymized_path(db, file_id, str(out_path))
 
-    # Create anonymization event
+    # Create anonymization event to record the success
     event = create_anonymization_event(
         db,
         document_id=file_id,
