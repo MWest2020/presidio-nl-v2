@@ -1,3 +1,5 @@
+import hashlib
+import logging
 import os
 import time
 import uuid
@@ -5,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+import pymupdf
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -26,7 +29,7 @@ from src.api.crud import (
     get_document,
     update_document_anonymized_path,
 )
-from src.api.dependencies import get_db, get_user
+from src.api.dependencies import get_db
 from src.api.dtos import (
     AddDocumentResponse,
     AddDocumentResponseInvalid,
@@ -39,6 +42,7 @@ from src.api.dtos import (
 from src.api.services.text_analyzer import ModularTextAnalyzer
 from src.api.utils import pdf_xmp
 
+logger = logging.getLogger(__name__)
 documents_router = APIRouter(prefix="/documents", tags=["documents"])
 
 analyzer = ModularTextAnalyzer()
@@ -127,6 +131,133 @@ async def upload_document(
         docs.append(doc_meta)
 
     return AddDocumentResponseSuccess(files=docs)
+
+
+@documents_router.post("/deanonymize")
+async def deanonymize_document(
+    file: UploadFile = FastAPIFile(...),
+    db: Session = Depends(get_db),
+    # username: str = Depends(get_user),
+) -> FileResponse:
+    """The endpoint where the user can submit a document to deanonymize.
+
+    The document contains metadata that was previously anonymized.
+    The endpoint returns the original document with metadata restored.
+    """
+    if file.filename is None or (
+        os.path.splitext(file.filename)[1][1:]
+        not in settings.SUPPORTED_UPLOAD_EXTENSIONS
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Only files with the following extensions are supported: {', '.join(settings.SUPPORTED_UPLOAD_EXTENSIONS)}",
+        )
+
+    content = await file.read()
+    await file.close()
+
+    # Create temp file for the uploaded anonymized document
+    temp_dir = Path("temp/deanonymize")
+    temp_dir.mkdir(parents=True, exist_ok=True)
+
+    # Generate a unique ID for this deanonymization process
+    process_id = uuid.uuid4().hex
+    anon_path = temp_dir / f"{process_id}_anonymized.pdf"
+    deanon_path = temp_dir / f"{process_id}_deanonymized.pdf"
+
+    # Save the uploaded file
+    with open(anon_path, "wb") as f:
+        f.write(content)
+
+    # Extract annotations from the anonymized PDF
+    try:
+        start = time.perf_counter()
+        # Get the key for decryption
+        key = settings.CRYPTO_KEY.decode()
+        hashed_key = hashlib.sha256(key.encode()).digest()
+
+        # Extract the annotations with encrypted entities
+        annotations = pdf_xmp.extract_annotations(
+            str(anon_path), decryption_key=hashed_key
+        )
+
+        if not annotations:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="No anonymization metadata found in the document",
+            )
+
+        # Open the PDF document for editing
+        doc = pymupdf.open(str(anon_path))
+
+        # Process each annotation to restore original text
+        for ann in annotations:
+            if "entity" in ann and "Page" in ann and "Rect" in ann:
+                page_num = int(ann["Page"]) - 1  # Pages are 0-indexed in PyMuPDF
+                if 0 <= page_num < len(doc):
+                    page = doc[page_num]
+
+                    # Parse the rectangle coordinates
+                    rect_str = ann["Rect"]
+                    coords = [float(c) for c in rect_str.split(",")]
+                    if len(coords) == 4:
+                        rect = pymupdf.Rect(*coords)
+
+                        # Remove any existing text in the redacted area
+                        page.add_redact_annot(rect, fill=(1, 1, 1))
+                        page.apply_redactions()
+
+                        # Insert the original entity text
+                        original_text = ann["entity"]
+                        page.insert_textbox(
+                            rect, original_text, fontsize=12, color=(0, 0, 0)
+                        )
+
+        # Save the deanonymized document
+        doc.save(str(deanon_path), incremental=False)
+        doc.close()
+
+        end = time.perf_counter()
+        logger.info(f"Deanonymization completed in {end - start:.2f} seconds")
+
+        # Return the deanonymized file
+        background = BackgroundTasks()
+        if not settings.KEEP_TEMP_FILES:
+            background.add_task(lambda: anon_path.unlink(missing_ok=True))
+            background.add_task(lambda: deanon_path.unlink(missing_ok=True))
+
+        return FileResponse(
+            path=str(deanon_path),
+            filename=f"deanonymized_{file.filename}"
+            if file.filename
+            else "deanonymized.pdf",
+            media_type="application/pdf",
+            background=background,
+        )
+    except HTTPException as http_exc:
+        # Clean up temporary files in case of HTTP error
+        if anon_path.exists():
+            anon_path.unlink()
+        if deanon_path.exists():
+            deanon_path.unlink()
+
+        logger.error(
+            f"HTTP error during deanonymization: {http_exc.detail}", exc_info=True
+        )
+        raise http_exc
+
+    except Exception as e:
+        # Clean up temporary files in case of error
+        if anon_path.exists():
+            anon_path.unlink()
+        if deanon_path.exists():
+            deanon_path.unlink()
+
+        logger.error(f"Error during deanonymization: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to deanonymize document: {str(e)}",
+        )
 
 
 @documents_router.get("/{file_id}/metadata", response_model=DocumentDto)

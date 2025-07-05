@@ -40,6 +40,7 @@ class Settings:
         else b"secret"
     )
     DATABASE_URL = "sqlite:///./openanonymiser.db"
+    KEEP_TEMP_FILES = os.getenv("KEEP_TEMP_FILES", "false").lower() == "true"
 
     BASIC_AUTH_USERNAME = os.getenv("BASIC_AUTH_USERNAME", "admin")
     BASIC_AUTH_PASSWORD = os.getenv("BASIC_AUTH_PASSWORD", "password")
