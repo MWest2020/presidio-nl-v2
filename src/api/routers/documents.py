@@ -268,6 +268,7 @@ async def get_document_metadata(
     # username: str = Depends(get_user),
 ) -> DocumentDto:
     """Get metadata for a specific document. Same response as upload."""
+    file_id_check(file_id)
     doc = get_document(db, file_id)
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
@@ -300,6 +301,7 @@ async def anonymize_document(
     # username: str = Depends(get_user),
 ) -> DocumentAnonymizationResponse:
     """Anonymize a specific document."""
+    file_id_check(file_id)
     doc = get_document(db, file_id)
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
@@ -431,6 +433,7 @@ async def download_document(
     Now we can use FastAPI's FileResponse to serve the file directly from disk;
     however in the future, we may use StreamingResponse to stream large files (from memory or disk) to the client.
     """
+    file_id_check(file_id)
     doc = get_document(db, file_id)
     if not doc or not doc.anonymized_path:
         raise HTTPException(status_code=404, detail="Document not anonymized")
@@ -446,3 +449,21 @@ async def download_document(
         background.add_task(source_path.unlink)
 
     return FileResponse(path=str(path), filename=path.name, background=background)
+
+
+def file_id_check(file_id: str) -> None:
+    """Check if the given file_id is a valid UUID."""
+    if not check_is_uuid(file_id):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid file ID format. Must be a valid UUID.",
+        )
+
+
+def check_is_uuid(value: str) -> bool:
+    """Check if the given value is a valid UUID."""
+    try:
+        uuid.UUID(value)
+        return True
+    except ValueError:
+        return False
