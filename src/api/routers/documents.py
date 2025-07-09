@@ -157,29 +157,25 @@ async def deanonymize_document(
     await file.close()
 
     # Create temp file for the uploaded anonymized document
-    temp_dir = Path("temp/deanonymize")
+    temp_dir = Path("temp/deanonymized")
     temp_dir.mkdir(parents=True, exist_ok=True)
 
-    # Generate a unique ID for this deanonymization process
     process_id = uuid.uuid4().hex
     anon_path = temp_dir / f"{process_id}_anonymized.pdf"
     deanon_path = temp_dir / f"{process_id}_deanonymized.pdf"
 
-    # Save the uploaded file
     with open(anon_path, "wb") as f:
         f.write(content)
 
-    # Extract annotations from the anonymized PDF
     try:
         start = time.perf_counter()
-        # Get the key for decryption
         key = settings.CRYPTO_KEY.decode()
         hashed_key = hashlib.sha256(key.encode()).digest()
 
-        # Extract the annotations with encrypted entities
         annotations = pdf_xmp.extract_annotations(
             str(anon_path), decryption_key=hashed_key
         )
+        print(f"Extracted {annotations=} from the PDF")
 
         if not annotations:
             raise HTTPException(
@@ -187,31 +183,27 @@ async def deanonymize_document(
                 detail="No anonymization metadata found in the document",
             )
 
-        # Open the PDF document for editing
         doc = pymupdf.open(str(anon_path))
 
-        # Process each annotation to restore original text
         for ann in annotations:
-            if "entity" in ann and "Page" in ann and "Rect" in ann:
-                page_num = int(ann["Page"]) - 1  # Pages are 0-indexed in PyMuPDF
+            if "entity" in ann and "page" in ann and "rect" in ann:
+                page_num = int(ann["page"]) - 1  # Pages are 0-indexed in PyMuPDF
                 if 0 <= page_num < len(doc):
                     page = doc[page_num]
 
                     # Parse the rectangle coordinates
-                    rect_str = ann["Rect"]
-                    coords = [float(c) for c in rect_str.split(",")]
-                    if len(coords) == 4:
-                        rect = pymupdf.Rect(*coords)
-
-                        # Remove any existing text in the redacted area
-                        page.add_redact_annot(rect, fill=(1, 1, 1))
-                        page.apply_redactions()
-
-                        # Insert the original entity text
-                        original_text = ann["entity"]
-                        page.insert_textbox(
-                            rect, original_text, fontsize=12, color=(0, 0, 0)
+                    rect = ann["rect"]
+                    if not isinstance(rect, list):
+                        logging.error(
+                            f"Invalid rectangle format: {rect}. Expected a list of coordinates."
                         )
+                        continue
+                    if len(rect) == 4:
+                        rect = pymupdf.Rect(*rect)
+
+                        original_text = ann["entity"]
+                        page.add_redact_annot(rect, fill=(1, 1, 1), text=original_text)
+                        page.apply_redactions()
 
         # Save the deanonymized document
         doc.save(str(deanon_path), incremental=False)

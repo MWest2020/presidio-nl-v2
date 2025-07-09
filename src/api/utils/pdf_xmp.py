@@ -1,7 +1,7 @@
 import hashlib
+import json
 import logging
 import re
-import uuid
 import xml.sax.saxutils as saxutils
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -170,7 +170,7 @@ def anonymize_pdf(
                         target.encode('utf-8', errors='ignore').decode(
                             'ascii', errors='ignore'
                         )
-                    }' on page {page_idx + 1} at {r}"
+                    }' on page {page_idx + 1}."
                 )
 
     doc.save(output_path, incremental=incremental_save)
@@ -190,11 +190,128 @@ def extract_annotations(
     If *decryption_key* is supplied, the function will attempt to decrypt the
     ``EncryptedEntity`` field of each record and add ``entity`` (plaintext).
     """
-    with pikepdf.Pdf.open(input_path) as pdf:
-        if "/Metadata" not in pdf.Root:
-            return []
-        xmp_xml = pdf.Root.Metadata.read_bytes().decode("utf-8", errors="replace")
+    logging.debug(f"Extracting annotations from {input_path}")
+    try:
+        with pikepdf.Pdf.open(input_path) as pdf:
+            if "/Metadata" not in pdf.Root:
+                logging.debug("No metadata found in PDF")
+                return []
 
+            try:
+                # Use errors='ignore' to handle any problematic characters
+                xmp_xml = pdf.Root.Metadata.read_bytes().decode(
+                    "utf-8", errors="ignore"
+                )
+            except UnicodeDecodeError:
+                logging.error("Failed to decode XMP metadata as UTF-8")
+                return []
+
+            # Remove any byte order mark that might cause issues
+            if xmp_xml.startswith("\ufeff"):
+                xmp_xml = xmp_xml[1:]
+
+            # Output debug info about the metadata structure
+            safe_preview = "".join(c for c in xmp_xml[:200] if ord(c) < 128)
+            logging.debug(f"Raw XMP content preview: {safe_preview}...")
+
+    except Exception as e:
+        logging.error(f"Failed to open PDF or read metadata: {e}")
+        return []
+
+    # Try multiple extraction methods for maximum compatibility
+
+    # Method 1: Look for CDATA section with various patterns
+    cdata_patterns = [
+        r"<custom:AnnotationData><!\[CDATA\[(.*?)\]\]></custom:AnnotationData>",
+        r"<custom:AnnotationData>\s*<!\[CDATA\[(.*?)\]\]>\s*</custom:AnnotationData>",
+        r"<custom:AnnotationData>(.*?)</custom:AnnotationData>",  # Non-CDATA version
+    ]
+
+    for pattern in cdata_patterns:
+        match = re.search(pattern, xmp_xml, re.DOTALL)
+        if match:
+            json_blob = match.group(1).strip()
+            try:
+                data = json.loads(json_blob)
+                if isinstance(data, dict) and "occurrences" in data:
+                    occurrences = data["occurrences"]
+                    if occurrences:
+                        logging.debug(
+                            f"Found {len(occurrences)} occurrences using CDATA pattern"
+                        )
+
+                        # Process decryption if key is provided
+                        if decryption_key:
+                            for occ in occurrences:
+                                if "encrypted_entity" in occ:
+                                    try:
+                                        plaintext = decrypt_entity(
+                                            occ["encrypted_entity"],
+                                            decryption_key,
+                                            header,
+                                        )
+
+                                        occ["entity"] = plaintext.decode(
+                                            "utf-8", errors="replace"
+                                        )
+                                        logging.debug(
+                                            f"Decrypted entity for occurrence ID {occ.get('id', 'unknown')}"
+                                        )
+                                    except Exception as e:
+                                        logging.error(f"Failed to decrypt entity: {e}")
+                                        occ["entity"] = None
+                        else:
+                            logging.debug(
+                                "No decryption key provided, skipping entity decryption"
+                            )
+
+                        return occurrences
+            except json.JSONDecodeError as e:
+                logging.error(f"Failed to parse JSON from pattern match: {e}")
+                blob_preview = json_blob[:100] if json_blob else "empty"
+                logging.debug(f"JSON data preview: {blob_preview}...")
+
+    # Method 2: Try attribute-style extraction
+    attr_start = xmp_xml.find('custom:AnnotationData="')
+    if attr_start != -1:
+        attr_start += len('custom:AnnotationData="')
+        attr_end = xmp_xml.find('"', attr_start)
+        if attr_end != -1:
+            json_blob = xmp_xml[attr_start:attr_end]
+            # Unescape XML entities
+            unescaped_json = saxutils.unescape(json_blob)
+
+            try:
+                data = json.loads(unescaped_json)
+                if isinstance(data, dict) and "occurrences" in data:
+                    occurrences = data["occurrences"]
+                    if occurrences:
+                        logging.debug(
+                            f"Found {len(occurrences)} occurrences using attribute pattern"
+                        )
+
+                        # Process decryption if key is provided
+                        if decryption_key:
+                            for occ in occurrences:
+                                if "encrypted_entity" in occ:
+                                    try:
+                                        plaintext = decrypt_entity(
+                                            occ["encrypted_entity"],
+                                            decryption_key,
+                                            header,
+                                        )
+                                        occ["entity"] = plaintext.decode(
+                                            "utf-8", errors="replace"
+                                        )
+                                    except Exception as e:
+                                        logging.error(f"Failed to decrypt entity: {e}")
+                                        occ["entity"] = None
+
+                        return occurrences
+            except json.JSONDecodeError as e:
+                logging.error(f"Failed to parse JSON from attribute: {e}")
+
+    # Method 3: Fallback to the old format with multiple Description elements
     tag_re = re.compile(r"<rdf:Description([^>]*)/>", re.DOTALL)
     prop_re = re.compile(r"custom:([A-Za-z]+)=\"([^\"]*)\"")
 
@@ -202,57 +319,114 @@ def extract_annotations(
     for m in tag_re.finditer(xmp_xml):
         attrs_block = m.group(1)
         props = {k: saxutils.unescape(v) for k, v in prop_re.findall(attrs_block)}
-        if decryption_key and "EncryptedEntity" in props:
-            try:
-                plaintext = decrypt_entity(
-                    props["EncryptedEntity"], decryption_key, header
+        if props:  # Only add if we found properties
+            if decryption_key and "encrypted_entity" in props:
+                try:
+                    plaintext = decrypt_entity(
+                        props["encrypted_entity"], decryption_key, header
+                    )
+                    props["entity"] = plaintext.decode("utf-8", errors="replace")
+                except Exception:
+                    props["entity"] = None  # leave undecoded # type: ignore
+            annotations.append(props)
+
+    if annotations:
+        logging.debug(f"Found {len(annotations)} annotations using old format")
+        return annotations
+
+    # Method 4: Last resort - try to find JSON anywhere in the XMP
+    # This is a bit risky but might catch JSON embedded in unusual ways
+    json_pattern = r'\{"occurrences":\s*\[(.*?)\]\}'
+    match = re.search(json_pattern, xmp_xml, re.DOTALL)
+    if match:
+        try:
+            # Reconstruct the full JSON string
+            json_blob = f'{{"occurrences": [{match.group(1)}]}}'
+            data = json.loads(json_blob)
+            occurrences = data.get("occurrences", [])
+            if occurrences:
+                logging.debug(
+                    f"Found {len(occurrences)} occurrences using JSON pattern search"
                 )
-                props["entity"] = plaintext.decode("utf-8", errors="replace")
-            except Exception:
-                props["entity"] = None  # leave undecoded # type: ignore
-        annotations.append(props)
-    return annotations
+
+                # Process decryption if key is provided
+                if decryption_key:
+                    for occ in occurrences:
+                        if "encrypted_entity" in occ:
+                            try:
+                                plaintext = decrypt_entity(
+                                    occ["encrypted_entity"], decryption_key, header
+                                )
+                                occ["entity"] = plaintext.decode(
+                                    "utf-8", errors="replace"
+                                )
+                            except Exception as e:
+                                logging.error(f"Failed to decrypt entity: {e}")
+                                occ["entity"] = None
+
+                return occurrences
+        except (json.JSONDecodeError, Exception) as e:
+            logging.error(f"Failed to parse JSON from pattern search: {e}")
+
+    # No annotations found with any method
+    logging.debug("No annotations found in XMP with any extraction method")
+    return []
 
 
 def _embed_occurrences_xmp(pdf_path: str, occs: List[_Occurrence]) -> None:
     """Create /Metadata with one <rdf:Description> element per occurrence."""
+    # Convert occurrences to JSON for embedding in CDATA section
+    import json
 
-    def _make_description(o: _Occurrence) -> str:
-        attrs = {
-            "custom:Id": o["id"],
-            "custom:Page": str(o["page"]),
-            "custom:Rect": ",".join(f"{v:.2f}" for v in o["rect"]),
-            "custom:EntityType": o["entity_type"],
-            "custom:EntityMask": o["entity_mask"],
-            "custom:EncryptedEntity": o["encrypted_entity"],
-            "custom:Fingerprint": o["key_fingerprint"],
+    # Format the occurrences into a proper dictionary
+    # Make sure to convert all values to standard Python types
+    safe_occs = []
+    for occ in occs:
+        # Create a clean dictionary from the occurrence
+        safe_occ = {
+            "id": str(occ.get("id", "")),
+            "page": int(occ.get("page", 0)),
+            "rect": [float(v) for v in occ.get("rect", (0, 0, 0, 0))],
+            "entity_type": str(occ.get("entity_type", "")),
+            "entity_mask": str(occ.get("entity_mask", "")),
+            "encrypted_entity": str(occ.get("encrypted_entity", "")),
+            "key_fingerprint": str(occ.get("key_fingerprint", "")),
         }
-        # XML-escape values (quotes, ampersands, etc.)
-        esc = {k: saxutils.escape(v, {'"': "&quot;"}) for k, v in attrs.items()}
-        return (
-            "  <rdf:Description rdf:about='' "
-            + " ".join(f'{k}="{v}"' for k, v in esc.items())
-            + "/>"
-        )
+        safe_occs.append(safe_occ)
 
-    # Build one <rdf:Description> per occurrence
-    descriptions = "\n".join(_make_description(o) for o in occs)
-    packet_id = uuid.uuid4().hex  # unique ID per XMP packet
+    occurrences_dict = {"occurrences": safe_occs}
 
-    xmp = f"""<?xpacket begin='' id='{packet_id}'>
-<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'
-         xmlns:custom='http://example.com/custom/'>
-{descriptions}
+    # Convert to JSON string - ensure ASCII encoding to avoid Unicode issues
+    json_blob = json.dumps(occurrences_dict, ensure_ascii=True)
+
+    # Use a standard packet ID as seen in the working example
+    xmp = f"""<?xpacket begin='' id='W5M0MpCehiHzreSzNTczkc9d'?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:custom="http://example.com/custom/">
+  <rdf:Description rdf:about="">
+    <custom:AnnotationData><![CDATA[{json_blob}]]></custom:AnnotationData>
+  </rdf:Description>
 </rdf:RDF>
 <?xpacket end='w'?>"""
 
-    # Embed/replace the metadata stream
-    with pikepdf.Pdf.open(pdf_path, allow_overwriting_input=True) as pdf:
-        pdf.Root.Metadata = pdf.make_stream(xmp.encode("utf-8"))
-        pdf.save(pdf_path)
-        logging.debug(
-            f"Embedded {len(occs)} occurrences in XMP metadata for {pdf_path}"
-        )
+    # Debug output to help diagnose any issues
+    logging.debug(f"XMP metadata preview (first 200 chars): {xmp[:200]}...")
+
+    # First clear any existing metadata to avoid conflicts
+    try:
+        # Try to open and clean up the PDF before adding new metadata
+        with pikepdf.Pdf.open(pdf_path, allow_overwriting_input=True) as pdf:
+            # Create a clean XMP metadata object
+            pdf.Root.Metadata = pdf.make_stream(xmp.encode("utf-8"))
+            # Save without any additional options
+            pdf.save(pdf_path)
+            logging.debug(
+                f"Embedded {len(occs)} occurrences in XMP metadata for {pdf_path}"
+            )
+    except Exception as e:
+        logging.error(f"Failed to embed XMP metadata: {e}")
+        # Print the first part of the XMP for debugging
+        logging.error(f"XMP content preview: {xmp[:500]}...")
 
 
 if __name__ == "__main__":
