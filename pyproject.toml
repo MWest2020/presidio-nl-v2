@@ -15,7 +15,6 @@ dependencies = [
     "python-dotenv>=1.1.0",
     "pycryptodome>=3.23.0",
     "sqlalchemy>=2.0.41",
-    "pytest>=8.4.1",
     "pymupdf>=1.26.3",
 ]
 authors = [
@@ -58,4 +57,7 @@ testpaths = ["tests"]
 [dependency-groups]
 flair = [
     "flair>=0.15.1",
+]
+dev = [
+    "pytest>=8.4.1",
 ]

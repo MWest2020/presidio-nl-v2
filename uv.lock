@@ -1516,7 +1516,6 @@ dependencies = [
     { name = "presidio-anonymizer" },
     { name = "pycryptodome" },
     { name = "pymupdf" },
-    { name = "pytest" },
     { name = "python-dotenv" },
     { name = "sqlalchemy" },
     { name = "torch" },
@@ -1524,6 +1523,9 @@ dependencies = [
 ]
 
 [package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
 flair = [
     { name = "flair" },
 ]
@@ -1537,7 +1539,6 @@ requires-dist = [
     { name = "presidio-anonymizer", specifier = ">=2.2.358" },
     { name = "pycryptodome", specifier = ">=3.23.0" },
     { name = "pymupdf", specifier = ">=1.26.3" },
-    { name = "pytest", specifier = ">=8.4.1" },
     { name = "python-dotenv", specifier = ">=1.1.0" },
     { name = "sqlalchemy", specifier = ">=2.0.41" },
     { name = "torch", specifier = ">=2.7.0" },
@@ -1545,6 +1546,7 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=8.4.1" }]
 flair = [{ name = "flair", specifier = ">=0.15.1" }]
 
 [[package]]
