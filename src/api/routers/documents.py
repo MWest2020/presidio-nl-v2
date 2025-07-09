@@ -345,23 +345,17 @@ async def anonymize_document(
             f"Starting anonymization for document {file_id} with {len(mapping)} entities"
         )
 
-        # Verify the source path exists
         if not os.path.exists(source_path):
             raise FileNotFoundError(f"Source file {source_path} not found")
 
-        # Ensure the output directory exists
         anonym_dir.mkdir(parents=True, exist_ok=True)
-
-        # Run the anonymization process
         occurrences = pdf_xmp.anonymize_pdf(
             str(source_path), str(out_path), mapping, key
         )
 
-        # Check if the output file was created successfully
         if not os.path.exists(out_path) or os.path.getsize(out_path) == 0:
             raise ValueError("Anonymization failed to produce valid output file")
 
-        # Verify the number of occurrences matches expected
         if len(occurrences) != len(mapping):
             logger.warning(
                 f"Only {len(occurrences)} out of {len(mapping)} entities were processed"

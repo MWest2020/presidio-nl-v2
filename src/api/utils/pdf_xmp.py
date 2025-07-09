@@ -127,9 +127,8 @@ def anonymize_pdf(
                 id_counter += 1
 
                 # Redact & overlay mask
-                page.add_redact_annot(r, fill=(1, 1, 1))
+                page.add_redact_annot(r, fill=(1, 1, 1), text=mask)
                 page.apply_redactions()
-                page.insert_textbox(r, mask, fontsize=12, color=(0, 0, 0), align=0)
 
     doc.save(output_path, incremental=incremental_save)
 
