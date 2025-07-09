@@ -1,9 +1,10 @@
 [project]
-name = "presidio-nl-v2"
+name = "OpenAnonymizer"
 version = "0.1.0"
-description = "Dutch Presidio-based Anonimyzer"
+description = "Dutch-based Anonimyzer for PII data in pdfs."
 readme = "README.md"
 requires-python = ">=3.12"
+license = { file = "LICENSE" }
 dependencies = [
     "fastapi[all]>=0.115.12",
     "presidio-analyzer>=2.2.358",

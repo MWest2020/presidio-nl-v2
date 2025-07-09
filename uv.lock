@@ -1297,6 +1297,51 @@ wheels = [
 ]
 
 [[package]]
+name = "openanonymizer"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "fastapi", extra = ["all"] },
+    { name = "nl-core-news-md" },
+    { name = "pikepdf" },
+    { name = "presidio-analyzer" },
+    { name = "presidio-anonymizer" },
+    { name = "pycryptodome" },
+    { name = "pymupdf" },
+    { name = "python-dotenv" },
+    { name = "sqlalchemy" },
+    { name = "torch" },
+    { name = "transformers" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+flair = [
+    { name = "flair" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fastapi", extras = ["all"], specifier = ">=0.115.12" },
+    { name = "nl-core-news-md", url = "https://github.com/explosion/spacy-models/releases/download/nl_core_news_md-3.8.0/nl_core_news_md-3.8.0-py3-none-any.whl" },
+    { name = "pikepdf", specifier = ">=9.9.0" },
+    { name = "presidio-analyzer", specifier = ">=2.2.358" },
+    { name = "presidio-anonymizer", specifier = ">=2.2.358" },
+    { name = "pycryptodome", specifier = ">=3.23.0" },
+    { name = "pymupdf", specifier = ">=1.26.3" },
+    { name = "python-dotenv", specifier = ">=1.1.0" },
+    { name = "sqlalchemy", specifier = ">=2.0.41" },
+    { name = "torch", specifier = ">=2.7.0" },
+    { name = "transformers", specifier = ">=4.51.3" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=8.4.1" }]
+flair = [{ name = "flair", specifier = ">=0.15.1" }]
+
+[[package]]
 name = "orjson"
 version = "3.10.18"
 source = { registry = "https://pypi.org/simple" }
@@ -1503,51 +1548,6 @@ dependencies = [
 wheels = [
     { url = "https://files.pythonhosted.org/packages/43/21/f00a2d321ef264e67e83a3bb8476efc97296be84bb260507fb984852e03c/presidio_anonymizer-2.2.358-py3-none-any.whl", hash = "sha256:54c7e26cfc7dc7887551774f97ef9070b011feea420fba3d0d0dde9689650432", size = 31283 },
 ]
-
-[[package]]
-name = "presidio-nl-v2"
-version = "0.1.0"
-source = { virtual = "." }
-dependencies = [
-    { name = "fastapi", extra = ["all"] },
-    { name = "nl-core-news-md" },
-    { name = "pikepdf" },
-    { name = "presidio-analyzer" },
-    { name = "presidio-anonymizer" },
-    { name = "pycryptodome" },
-    { name = "pymupdf" },
-    { name = "python-dotenv" },
-    { name = "sqlalchemy" },
-    { name = "torch" },
-    { name = "transformers" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pytest" },
-]
-flair = [
-    { name = "flair" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "fastapi", extras = ["all"], specifier = ">=0.115.12" },
-    { name = "nl-core-news-md", url = "https://github.com/explosion/spacy-models/releases/download/nl_core_news_md-3.8.0/nl_core_news_md-3.8.0-py3-none-any.whl" },
-    { name = "pikepdf", specifier = ">=9.9.0" },
-    { name = "presidio-analyzer", specifier = ">=2.2.358" },
-    { name = "presidio-anonymizer", specifier = ">=2.2.358" },
-    { name = "pycryptodome", specifier = ">=3.23.0" },
-    { name = "pymupdf", specifier = ">=1.26.3" },
-    { name = "python-dotenv", specifier = ">=1.1.0" },
-    { name = "sqlalchemy", specifier = ">=2.0.41" },
-    { name = "torch", specifier = ">=2.7.0" },
-    { name = "transformers", specifier = ">=4.51.3" },
-]
-
-[package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=8.4.1" }]
-flair = [{ name = "flair", specifier = ">=0.15.1" }]
 
 [[package]]
 name = "protobuf"
