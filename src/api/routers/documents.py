@@ -349,9 +349,14 @@ async def anonymize_document(
             raise ValueError("Anonymization failed to produce valid output file")
 
         if len(occurrences) != len(mapping):
-            logger.warning(
-                f"Only {len(occurrences)} out of {len(mapping)} entities were processed"
-            )
+            if len(occurrences) < len(mapping):
+                logger.warning(
+                    f"Only {len(occurrences)} out of {len(mapping)} entities were processed"
+                )
+            else:
+                logger.info(
+                    f"Processed {len(occurrences)} occurrences of {len(mapping)} unique entities"
+                )
 
         status_text = f"success ({len(occurrences)} entities processed)"
     except FileNotFoundError as exc:
@@ -364,7 +369,7 @@ async def anonymize_document(
         logger.error(f"Unexpected error during anonymization: {exc}", exc_info=True)
         status_text = f"failed: {exc}"
     end = time.perf_counter()
-
+    time_ms_taken = int((end - start) * 1000)  # Convert to milliseconds
     # Check if anonymization was successful before updating the database
     if status_text.startswith("failed"):
         # Remove the output file if it exists but anonymization failed
@@ -375,7 +380,7 @@ async def anonymize_document(
         event = create_anonymization_event(
             db,
             document_id=file_id,
-            time_taken=int(end - start),
+            time_taken=time_ms_taken,
             status=status_text,
         )
         event._pii_entities = selected
@@ -392,7 +397,7 @@ async def anonymize_document(
     event = create_anonymization_event(
         db,
         document_id=file_id,
-        time_taken=int(end - start),
+        time_taken=time_ms_taken,
         status=status_text,
     )
     event._pii_entities = selected
@@ -401,7 +406,7 @@ async def anonymize_document(
         id=file_id,
         filename=str(updated_doc.filename) if updated_doc else "",
         anonymized_at=datetime.now(),  # Use current time for response
-        time_taken=int(end - start),
+        time_taken=time_ms_taken,
         status=status_text,
         pii_entities=selected,
     )
