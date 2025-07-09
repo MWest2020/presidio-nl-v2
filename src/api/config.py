@@ -76,6 +76,7 @@ def setup_logging() -> None:
                     "class": "logging.StreamHandler",
                     "formatter": "default",
                     "level": console_log_level,
+                    "stream": "ext://sys.stdout",  # Use stdout with UTF-8 encoding
                 },
             },
             "root": {

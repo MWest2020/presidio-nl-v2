@@ -102,15 +102,41 @@ def anonymize_pdf(
     hashed_key = hashlib.sha256(private_key.encode()).digest()
     masks = {**_DEFAULT_ENTITY_MASK, **(entity_masks or {})}
 
-    doc = pymupdf.open(input_path)
+    doc: pymupdf.Document = pymupdf.open(input_path)
     occurrences: List[_Occurrence] = []
     id_counter = 0
 
     for target, entity_type in replacements.items():
         mask = masks.get(entity_type, f"[{entity_type.upper()}]")
         for page_idx, page in enumerate(doc):
+            page: pymupdf.Page
             rects = page.search_for(target)
             for r in rects:
+                # Get text style information around the target text
+                font_size = 11  # Default font size if we can't determine
+                font_name = "Helvetica"
+                try:
+                    blocks = page.get_text("dict")["blocks"]
+                except Exception as e:
+                    if "font" in str(e):
+                        logging.warning(
+                            f"Could not determine font for page {page_idx + 1}: {e}"
+                        )
+                    blocks = []  # Fallback to empty list if text extraction fails
+                for block in blocks:
+                    for line in block.get("lines", []):
+                        for span in line.get("spans", []):
+                            span_rect = pymupdf.Rect(span["bbox"])
+                            if r.intersects(span_rect):
+                                font_size = span.get("size", font_size)
+                                font_name = span.get("font", font_name)
+                                break
+
+                logging.debug(
+                    f"Found target target='{target.encode('utf-8', errors='ignore').decode('ascii', errors='ignore')}"
+                    f"with font size {str(font_size)} and font name {str(font_name)}"
+                )
+                font_size = int(font_size)  # Ensure font size is an integer
                 # Record before redaction so coordinates refer to original.
                 occ: _Occurrence = {  # type: ignore
                     "id": f"ann{id_counter}",
@@ -126,9 +152,26 @@ def anonymize_pdf(
                 occurrences.append(occ)
                 id_counter += 1
 
-                # Redact & overlay mask
-                page.add_redact_annot(r, fill=(1, 1, 1), text=mask)
-                page.apply_redactions()
+                try:
+                    page.add_redact_annot(
+                        r,
+                        fill=(1, 1, 1),
+                        text=mask,
+                        fontsize=font_size,
+                    )
+                    page.apply_redactions()
+                except Exception as e:
+                    logging.error(
+                        f"Failed to add redaction for target='{target.encode('utf-8', errors='replace').decode('ascii', errors='ignore')} on page {page_idx + 1}: {e}"
+                    )
+                    continue  # Skip this occurrence if redaction fails
+                logging.debug(
+                    f"Added redaction for target='{
+                        target.encode('utf-8', errors='ignore').decode(
+                            'ascii', errors='ignore'
+                        )
+                    }' on page {page_idx + 1} at {r}"
+                )
 
     doc.save(output_path, incremental=incremental_save)
 
