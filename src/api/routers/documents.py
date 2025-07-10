@@ -1,4 +1,3 @@
-import hashlib
 import logging
 import os
 import time
@@ -7,13 +6,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-import pymupdf
 from fastapi import (
     APIRouter,
     BackgroundTasks,
     Depends,
     HTTPException,
-    Response,
     UploadFile,
     status,
 )
@@ -24,48 +21,26 @@ from sqlalchemy.orm import Session
 from src.api.config import settings
 from src.api.crud import (
     create_anonymization_event,
-    create_document,
-    create_tag,
     get_document,
     update_document_anonymized_path,
 )
 from src.api.dependencies import get_db
 from src.api.dtos import (
     AddDocumentResponse,
-    AddDocumentResponseInvalid,
     AddDocumentResponseSuccess,
     DocumentAnonymizationRequest,
     DocumentAnonymizationResponse,
     DocumentDto,
     DocumentTagDto,
 )
-from src.api.services.text_analyzer import ModularTextAnalyzer
 from src.api.utils import pdf_xmp
 
 logger = logging.getLogger(__name__)
 documents_router = APIRouter(prefix="/documents", tags=["documents"])
 
-analyzer = ModularTextAnalyzer()
 
-
-@documents_router.post(
-    "/upload",
-    responses={
-        status.HTTP_200_OK: {
-            "model": AddDocumentResponseSuccess,
-        },
-        status.HTTP_422_UNPROCESSABLE_ENTITY: {
-            "model": AddDocumentResponseInvalid,
-        },
-    },
-)
-async def upload_document(
-    response: Response,
-    files: list[UploadFile] = FastAPIFile(...),
-    tags: Optional[list[str]] = None,
-    db: Session = Depends(get_db),
-    # username: str = Depends(get_user),
-) -> AddDocumentResponse:
+def validate_files_extensions(files: list[UploadFile]) -> None:
+    """Validate that all uploaded files have supported extensions."""
     if any(
         f
         for f in files
@@ -73,62 +48,23 @@ async def upload_document(
         or os.path.splitext(f.filename)[1][1:]
         not in settings.SUPPORTED_UPLOAD_EXTENSIONS
     ):
-        response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
-
-        return AddDocumentResponseInvalid(
-            message=f"Only files with the following extensions are supported: {', '.join(settings.SUPPORTED_UPLOAD_EXTENSIONS)}"
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Only files with the following extensions are supported: {', '.join(settings.SUPPORTED_UPLOAD_EXTENSIONS)}",
         )
 
-    docs: list[DocumentDto] = []
 
-    for file in files:
-        content = await file.read()
-        await file.close()
-
-        file_id = uuid.uuid4().hex
-        source_dir = Path("temp/source")
-        source_dir.mkdir(parents=True, exist_ok=True)
-        source_path = source_dir / f"{file_id}.pdf"
-        with open(source_path, "wb") as f:
-            f.write(content)
-
-        text = pdf_xmp.extract_text_from_pdf(source_path)
-
-        entities, unique = await pdf_xmp.extract_unique_entities(
-            text=text, analyzer=analyzer
-        )
-
-        # Create document in database
-        db_document = create_document(
-            db,
-            id=file_id,
-            filename=file.filename or f"{file_id}.pdf",
-            content_type=file.content_type or "application/pdf",
-            source_path=str(source_path),
-            anonymized_path=None,
-        )
-
-        db_tags = []
-        for tag_name in tags or []:
-            tag_id = uuid.uuid4().hex
-            tag = create_tag(db, tag_id, tag_name, file_id)
-            db_tags.append(tag)
-
-        db_document._entities = entities
-
-        stored_tags = [
-            DocumentTagDto(id=str(tag.id), name=str(tag.name)) for tag in db_tags
-        ]
-        doc_meta = DocumentDto(
-            id=file_id,
-            filename=str(db_document.filename),
-            content_type=str(db_document.content_type),
-            uploaded_at=datetime.now(),  # Use current time for response
-            tags=stored_tags,
-            pii_entities=unique,
-        )
-
-        docs.append(doc_meta)
+@documents_router.post(
+    "/upload",
+)
+async def upload_document(
+    files: list[UploadFile] = FastAPIFile(...),
+    tags: Optional[list[str]] = None,
+    db: Session = Depends(get_db),
+    # username: str = Depends(get_user),
+) -> AddDocumentResponse:
+    validate_files_extensions(files)
+    docs = await pdf_xmp.upload_and_analyze_files(files, tags, db)
 
     return AddDocumentResponseSuccess(files=docs)
 
@@ -144,85 +80,41 @@ async def deanonymize_document(
     The document contains metadata that was previously anonymized.
     The endpoint returns the original document with metadata restored.
     """
-    if file.filename is None or (
-        os.path.splitext(file.filename)[1][1:]
-        not in settings.SUPPORTED_UPLOAD_EXTENSIONS
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Only files with the following extensions are supported: {', '.join(settings.SUPPORTED_UPLOAD_EXTENSIONS)}",
-        )
+    start = time.perf_counter()
+    validate_files_extensions([file])
 
-    content = await file.read()
-    await file.close()
-
-    # Create temp file for the uploaded anonymized document
-    temp_dir = Path("temp/deanonymized")
-    temp_dir.mkdir(parents=True, exist_ok=True)
-
-    process_id = uuid.uuid4().hex
-    anon_path = temp_dir / f"{process_id}_anonymized.pdf"
-    deanon_path = temp_dir / f"{process_id}_deanonymized.pdf"
-
-    with open(anon_path, "wb") as f:
-        f.write(content)
+    anon_path, deanon_path = await pdf_xmp.create_temp_paths_and_save(file)
 
     try:
-        start = time.perf_counter()
         key = settings.CRYPTO_KEY.decode()
-        hashed_key = hashlib.sha256(key.encode()).digest()
-
-        annotations = pdf_xmp.extract_annotations(
-            str(anon_path), decryption_key=hashed_key
-        )
-        print(f"Extracted {annotations=} from the PDF")
-
-        if not annotations:
+        try:
+            doc = pdf_xmp.process_anonymized_pdf_to_deanonymize(
+                anon_path=anon_path, key=key
+            )
+        except ValueError as ve:
+            logger.error(
+                f"Value error during deanonymization: {str(ve)}", exc_info=True
+            )
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="No anonymization metadata found in the document",
             )
-
-        doc = pymupdf.open(str(anon_path))
-
-        for ann in annotations:
-            if "entity" in ann and "page" in ann and "rect" in ann:
-                page_num = int(ann["page"]) - 1  # Pages are 0-indexed in PyMuPDF
-                if 0 <= page_num < len(doc):
-                    page = doc[page_num]
-
-                    # Parse the rectangle coordinates
-                    rect = ann["rect"]
-                    if not isinstance(rect, list):
-                        logging.error(
-                            f"Invalid rectangle format: {rect}. Expected a list of coordinates."
-                        )
-                        continue
-                    if len(rect) == 4:
-                        rect = pymupdf.Rect(*rect)
-
-                        original_text = ann["entity"]
-                        page.add_redact_annot(rect, fill=(1, 1, 1), text=original_text)
-                        page.apply_redactions()
-
-        # Save the deanonymized document
-        doc.save(str(deanon_path), incremental=False)
-        doc.close()
+        background = pdf_xmp.save_document_and_cleanup(
+            anon_path=anon_path,
+            deanon_path=deanon_path,
+            doc=doc,
+            keep_temp_files=settings.KEEP_TEMP_FILES,
+        )
 
         end = time.perf_counter()
-        logger.info(f"Deanonymization completed in {end - start:.2f} seconds")
+        logger.debug(f"Deanonymization completed in {end - start:.2f} seconds")
 
-        # Return the deanonymized file
-        background = BackgroundTasks()
-        if not settings.KEEP_TEMP_FILES:
-            background.add_task(lambda: anon_path.unlink(missing_ok=True))
-            background.add_task(lambda: deanon_path.unlink(missing_ok=True))
-
+        filename = (
+            f"deanonymized_{file.filename}" if file.filename else "deanonymized.pdf"
+        )
         return FileResponse(
             path=str(deanon_path),
-            filename=f"deanonymized_{file.filename}"
-            if file.filename
-            else "deanonymized.pdf",
+            filename=filename,
             media_type="application/pdf",
             background=background,
         )
@@ -269,9 +161,7 @@ async def get_document_metadata(
 
     if get_pii_entities:
         text = pdf_xmp.extract_text_from_pdf(Path(doc.source_path))
-        _, unique_entities = await pdf_xmp.extract_unique_entities(
-            text=text, analyzer=analyzer
-        )
+        _, unique_entities = await pdf_xmp.extract_unique_entities(text=text)
     else:
         unique_entities = []
 
@@ -293,85 +183,35 @@ async def anonymize_document(
     # username: str = Depends(get_user),
 ) -> DocumentAnonymizationResponse:
     """Anonymize a specific document."""
+    start = time.perf_counter()
     file_id_check(file_id)
     doc = get_document(db, file_id)
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    source_path = doc.source_path
-    analyzer = ModularTextAnalyzer()
-
-    entities = getattr(doc, "_entities", None)
-    if not entities:
-        text = ""
-        try:
-            import pymupdf
-
-            pdf_doc = pymupdf.open(source_path)
-            text = "\n".join(p.get_text() for p in pdf_doc)
-            pdf_doc.close()
-        except Exception:
-            text = ""
-        entities = analyzer.analyze_text(text) if text else []
-        doc._entities = entities
-
-    selected = []
-    for e in entities:
-        if e["entity_type"] in request_body.pii_entities_to_anonymize:
-            e_copy = e.copy()
-            for field in ("start", "end", "score"):
-                if field in e_copy:
-                    e_copy[field] = str(e_copy[field])
-            selected.append(e_copy)
-
-    mapping = {e["text"]: e["entity_type"].lower() for e in selected}
-
-    anonym_dir = Path("temp/anonymized")
-    anonym_dir.mkdir(parents=True, exist_ok=True)
-    out_path = anonym_dir / f"{file_id}.pdf"
-
-    start = time.perf_counter()
     try:
-        key = settings.CRYPTO_KEY.decode()
-        logger.info(
-            f"Starting anonymization for document {file_id} with {len(mapping)} entities"
+        result: pdf_xmp.AnalysisAnonymizationResponse = (
+            pdf_xmp.analyze_and_anonymize_document(
+                file_id=file_id,
+                request_body=request_body,
+                doc=doc,
+                key=settings.CRYPTO_KEY.decode(),
+            )
         )
-
-        if not os.path.exists(source_path):
-            raise FileNotFoundError(f"Source file {source_path} not found")
-
-        anonym_dir.mkdir(parents=True, exist_ok=True)
-        occurrences = pdf_xmp.anonymize_pdf(
-            str(source_path), str(out_path), mapping, key
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An unexpected error occurred during document anonymization: {str(e)}",
         )
+    # unpack the result
+    out_path = result.output_path
+    selected = result.selected_entities
+    status_text = result.status_text
 
-        if not os.path.exists(out_path) or os.path.getsize(out_path) == 0:
-            raise ValueError("Anonymization failed to produce valid output file")
-
-        if len(occurrences) != len(mapping):
-            if len(occurrences) < len(mapping):
-                logger.warning(
-                    f"Only {len(occurrences)} out of {len(mapping)} entities were processed"
-                )
-            else:
-                logger.info(
-                    f"Processed {len(occurrences)} occurrences of {len(mapping)} unique entities"
-                )
-
-        status_text = f"success ({len(occurrences)} entities processed)"
-    except FileNotFoundError as exc:
-        logger.error(f"File not found error: {exc}", exc_info=True)
-        status_text = f"failed: {exc}"
-    except ValueError as exc:
-        logger.error(f"Value error during anonymization: {exc}", exc_info=True)
-        status_text = f"failed: {exc}"
-    except Exception as exc:  # pragma: no cover - depends on external libs
-        logger.error(f"Unexpected error during anonymization: {exc}", exc_info=True)
-        status_text = f"failed: {exc}"
     end = time.perf_counter()
     time_ms_taken = int((end - start) * 1000)  # Convert to milliseconds
-    # Check if anonymization was successful before updating the database
-    if status_text.startswith("failed"):
+
+    if result.status_text.startswith("failed"):
         # Remove the output file if it exists but anonymization failed
         if os.path.exists(out_path):
             os.unlink(out_path)
@@ -390,10 +230,8 @@ async def anonymize_document(
             detail=f"Document anonymization failed: {status_text}",
         )
 
-    # Update document in database with the new anonymized path
+    # update DB entries
     updated_doc = update_document_anonymized_path(db, file_id, str(out_path))
-
-    # Create anonymization event to record the success
     event = create_anonymization_event(
         db,
         document_id=file_id,

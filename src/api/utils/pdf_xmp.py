@@ -1,14 +1,23 @@
 import hashlib
 import json
 import logging
+import os
 import re
+import uuid
 import xml.sax.saxutils as saxutils
+from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import pikepdf
 import pymupdf
+from fastapi import BackgroundTasks, UploadFile
+from sqlalchemy.orm import Session
 
+from src.api import database
+from src.api.crud import create_document, create_tag
+from src.api.dtos import DocumentAnonymizationRequest, DocumentDto, DocumentTagDto
 from src.api.services.text_analyzer import ModularTextAnalyzer
 from src.api.utils.crypto import (
     aes_gcm_decrypt as decrypt_entity,
@@ -27,6 +36,8 @@ _DEFAULT_ENTITY_MASK = {
     "phone": "[PHONE]",
 }
 
+logger = logging.getLogger(__name__)
+
 
 class _Occurrence(dict):
     """Typed helper for a single PII occurrence."""
@@ -38,6 +49,249 @@ class _Occurrence(dict):
     entity_mask: str
     encrypted_entity: str
     fingerprint: str
+
+
+@dataclass
+class AnalysisAnonymizationResponse:
+    selected_entities: list[dict]
+    output_path: Path
+    status_text: str
+
+
+def save_document_and_cleanup(
+    anon_path: Path,
+    deanon_path: Path,
+    doc: pymupdf.Document,
+    keep_temp_files: bool = False,
+) -> BackgroundTasks:
+    doc.save(str(deanon_path), incremental=False)
+    doc.close()
+
+    background = BackgroundTasks()
+    if not keep_temp_files:
+        background.add_task(lambda: anon_path.unlink(missing_ok=True))
+        background.add_task(lambda: deanon_path.unlink(missing_ok=True))
+    return background
+
+
+def process_anonymized_pdf_to_deanonymize(
+    anon_path: Path, key: str
+) -> pymupdf.Document:
+    hashed_key = hashlib.sha256(key.encode()).digest()
+
+    annotations = extract_annotations(str(anon_path), decryption_key=hashed_key)
+    print(f"Extracted {annotations=} from the PDF")
+
+    if not annotations:
+        raise ValueError(
+            "No annotations found in the PDF. Ensure the document has been properly anonymized."
+        )
+
+    doc = pymupdf.open(str(anon_path))
+
+    for ann in annotations:
+        if "entity" in ann and "page" in ann and "rect" in ann:
+            page_num = int(ann["page"]) - 1  # Pages are 0-indexed in PyMuPDF
+            if 0 <= page_num < len(doc):
+                page = doc[page_num]
+
+                # Parse the rectangle coordinates
+                rect = ann["rect"]
+                if not isinstance(rect, list):
+                    logging.error(
+                        f"Invalid rectangle format: {rect}. Expected a list of coordinates."
+                    )
+                    continue
+                if len(rect) == 4:
+                    rect = pymupdf.Rect(*rect)
+
+                    original_text = ann["entity"]
+                    page.add_redact_annot(rect, fill=(1, 1, 1), text=original_text)
+                    page.apply_redactions()
+    return doc
+
+
+async def create_temp_paths_and_save(file):
+    content = await file.read()
+    await file.close()
+
+    # Create temp file for the uploaded anonymized document
+    temp_dir = Path("temp/deanonymized")
+    temp_dir.mkdir(parents=True, exist_ok=True)
+
+    process_id = uuid.uuid4().hex
+    anon_path = temp_dir / f"{process_id}_anonymized.pdf"
+    deanon_path = temp_dir / f"{process_id}_deanonymized.pdf"
+
+    with open(anon_path, "wb") as f:
+        f.write(content)
+    return anon_path, deanon_path
+
+
+async def upload_and_analyze_files(
+    files: list[UploadFile], tags: list[str], db: Session
+):
+    """Upload files, analyze them for PII entities, and store metadata in the database.
+
+    Args:
+        files (list[UploadFile]): List of files to be uploaded and analyzed.
+        tags (list[str]): List of tags to be associated with the documents.
+        db (Session): Database session for storing document metadata.
+
+    Returns:
+        _type_: list[DocumentDto]
+    """
+    analyzer = ModularTextAnalyzer()
+    docs: list[DocumentDto] = []
+
+    for file in files:
+        content = await file.read()
+        await file.close()
+
+        file_id = uuid.uuid4().hex
+        source_dir = Path("temp/source")
+        source_dir.mkdir(parents=True, exist_ok=True)
+        source_path = source_dir / f"{file_id}.pdf"
+        with open(source_path, "wb") as f:
+            f.write(content)
+
+        text = extract_text_from_pdf(source_path)
+
+        entities, unique = await extract_unique_entities(text=text, analyzer=analyzer)
+
+        db_document = create_document(
+            db,
+            id=file_id,
+            filename=file.filename or f"{file_id}.pdf",
+            content_type=file.content_type or "application/pdf",
+            source_path=str(source_path),
+            anonymized_path=None,
+        )
+
+        db_tags = []
+        for tag_name in tags or []:
+            tag_id = uuid.uuid4().hex
+            tag = create_tag(db, tag_id, tag_name, file_id)
+            db_tags.append(tag)
+
+        db_document._entities = entities
+
+        stored_tags = [
+            DocumentTagDto(id=str(tag.id), name=str(tag.name)) for tag in db_tags
+        ]
+        doc_meta = DocumentDto(
+            id=file_id,
+            filename=str(db_document.filename),
+            content_type=str(db_document.content_type),
+            uploaded_at=datetime.now(),  # Use current time for response
+            tags=stored_tags,
+            pii_entities=unique,
+        )
+
+        docs.append(doc_meta)
+    return docs
+
+
+def analyze_and_anonymize_document(
+    file_id: str,
+    request_body: DocumentAnonymizationRequest,
+    doc: database.Document,
+    key: str,
+) -> AnalysisAnonymizationResponse:
+    """Analyze a document and anonymize identified PII entities.
+
+    This function performs text extraction from a PDF document, analyzes it for PII entities,
+    filters the entities based on the requested types to anonymize, and then creates
+    an anonymized version of the PDF document.
+
+    Args:
+        file_id: The unique identifier for the document
+        request_body: Request containing the PII entity types to anonymize
+        doc: Database document model containing document information
+        key: Private key used for encrypting PII entities
+
+    Returns:
+        AnalysisAnonymizationResponse:
+            - selected_entities (list[dict]): Selected PII entities that were anonymized
+            - output_path (Path): Path to the anonymized output file
+            - status_text (str): Status message describing the result of the operation
+
+    Raises:
+        FileNotFoundError: If the source document cannot be found
+        ValueError: If the anonymization process fails to produce a valid output file
+    """
+    source_path = doc.source_path
+    analyzer = ModularTextAnalyzer()
+
+    entities = getattr(doc, "_entities", None)
+    if not entities:
+        text = ""
+        try:
+            import pymupdf
+
+            pdf_doc: pymupdf.Document = pymupdf.open(source_path)
+            text = "\n".join(p.get_text() for p in pdf_doc)
+            pdf_doc.close()
+        except Exception:
+            text = ""
+        entities = analyzer.analyze_text(text) if text else []
+        doc._entities = entities
+
+    selected = []
+    for e in entities:
+        if e["entity_type"] in request_body.pii_entities_to_anonymize:
+            e_copy = e.copy()
+            for field in ("start", "end", "score"):
+                if field in e_copy:
+                    e_copy[field] = str(e_copy[field])
+            selected.append(e_copy)
+
+    mapping = {e["text"]: e["entity_type"].lower() for e in selected}
+
+    anonym_dir = Path("temp/anonymized")
+    anonym_dir.mkdir(parents=True, exist_ok=True)
+    out_path = anonym_dir / f"{file_id}.pdf"
+
+    try:
+        logger.info(
+            f"Starting anonymization for document {file_id} with {len(mapping)} entities"
+        )
+
+        if not os.path.exists(source_path):
+            raise FileNotFoundError(f"Source file {source_path} not found")
+
+        anonym_dir.mkdir(parents=True, exist_ok=True)
+        occurrences = anonymize_pdf(str(source_path), str(out_path), mapping, key)
+
+        if not os.path.exists(out_path) or os.path.getsize(out_path) == 0:
+            raise ValueError("Anonymization failed to produce valid output file")
+
+        if len(occurrences) != len(mapping):
+            if len(occurrences) < len(mapping):
+                logger.warning(
+                    f"Only {len(occurrences)} out of {len(mapping)} entities were processed"
+                )
+            else:
+                logger.info(
+                    f"Processed {len(occurrences)} occurrences of {len(mapping)} unique entities"
+                )
+
+        status_text = f"success ({len(occurrences)} entities processed)"
+    except FileNotFoundError as exc:
+        logger.error(f"File not found error: {exc}", exc_info=True)
+        status_text = f"failed: {exc}"
+    except ValueError as exc:
+        logger.error(f"Value error during anonymization: {exc}", exc_info=True)
+        status_text = f"failed: {exc}"
+    except Exception as exc:  # pragma: no cover - depends on external libs
+        logger.error(f"Unexpected error during anonymization: {exc}", exc_info=True)
+        status_text = f"failed: {exc}"
+
+    return AnalysisAnonymizationResponse(
+        selected_entities=selected,
+        output_path=out_path,
+        status_text=status_text,
+    )
 
 
 def extract_text_from_pdf(source_path: Path) -> str:
@@ -52,19 +306,18 @@ def extract_text_from_pdf(source_path: Path) -> str:
 
 
 async def extract_unique_entities(
-    analyzer: ModularTextAnalyzer,
     text: str,
 ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
     """Extract unique entities from the given text using the provided analyzer.
 
     Args:
-        analyzer (ModularTextAnalyzer): The text analyzer instance to use for entity extraction.
         text (str): The text to analyze for entities.
 
     Returns:
         tuple[list[dict[str, str]], list[dict[str, str]]]: the first list contains all entities found,
             the second list contains unique entities with their types and text.
     """
+    analyzer = ModularTextAnalyzer()
     entities = analyzer.analyze_text(text) if text else []
     unique: list[dict[str, str]] = []
     seen = set()
@@ -113,24 +366,9 @@ def anonymize_pdf(
             rects = page.search_for(target)
             for r in rects:
                 # Get text style information around the target text
-                font_size = 11  # Default font size if we can't determine
-                font_name = "Helvetica"
-                try:
-                    blocks = page.get_text("dict")["blocks"]
-                except Exception as e:
-                    if "font" in str(e):
-                        logging.warning(
-                            f"Could not determine font for page {page_idx + 1}: {e}"
-                        )
-                    blocks = []  # Fallback to empty list if text extraction fails
-                for block in blocks:
-                    for line in block.get("lines", []):
-                        for span in line.get("spans", []):
-                            span_rect = pymupdf.Rect(span["bbox"])
-                            if r.intersects(span_rect):
-                                font_size = span.get("size", font_size)
-                                font_name = span.get("font", font_name)
-                                break
+                font_size, font_name = extract_font_details(
+                    page_idx=page_idx, page=page, r=r
+                )
 
                 logging.debug(
                     f"Found target target='{target.encode('utf-8', errors='ignore').decode('ascii', errors='ignore')}"
@@ -176,7 +414,39 @@ def anonymize_pdf(
     doc.save(output_path, incremental=incremental_save)
 
     _embed_occurrences_xmp(output_path, occurrences)
-    return occurrences  # For further processing/testing # type: ignore
+    return occurrences
+
+
+def extract_font_details(
+    page_idx: int, page: pymupdf.Page, r: pymupdf.Rect
+) -> Tuple[int, str]:
+    """Extract font size and name from the text span at the given rectangle.
+
+    Args:
+        page_idx (int): page index (0-based) in the document.
+        page (pymupdf.Page): pymupdf Page object to extract text from.
+        r (pymupdf.Rect): pymupdf Rect object representing the area to check.
+
+    Returns:
+        Tuple[int, str]: Tuple containing font size and font name.
+    """
+    font_size = 11  # Default font size if we can't determine
+    font_name = "Helvetica"
+    try:
+        blocks = page.get_text("dict")["blocks"]
+    except Exception as e:
+        if "font" in str(e):
+            logging.warning(f"Could not determine font for page {page_idx + 1}: {e}")
+        blocks = []  # Fallback to empty list if text extraction fails
+    for block in blocks:
+        for line in block.get("lines", []):
+            for span in line.get("spans", []):
+                span_rect = pymupdf.Rect(span["bbox"])
+                if r.intersects(span_rect):
+                    font_size = span.get("size", font_size)
+                    font_name = span.get("font", font_name)
+                    break
+    return font_size, font_name  # For further processing/testing # type: ignore
 
 
 def extract_annotations(
