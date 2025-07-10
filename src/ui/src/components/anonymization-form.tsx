@@ -5,8 +5,7 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { groupPiiEntitiesByType } from '../lib/utils';
 import { api } from '../lib/api';
-import { downloadBlob } from '../lib/utils';
-import type { DocumentDto, PiiEntityDto } from '../types';
+import type { DocumentDto } from '../types';
 
 interface AnonymizationFormProps {
   document: DocumentDto;
@@ -14,7 +13,7 @@ interface AnonymizationFormProps {
 }
 
 export function AnonymizationForm({ document, onComplete }: AnonymizationFormProps) {
-  const [selectedEntities, setSelectedEntities] = useState<PiiEntityDto[]>([]);
+  const [selectedEntityTypes, setSelectedEntityTypes] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -25,25 +24,21 @@ export function AnonymizationForm({ document, onComplete }: AnonymizationFormPro
   
   const piiGroups = groupPiiEntitiesByType(document.pii_entities);
   
-  const handleCheck = (entity: PiiEntityDto) => {
-    if (selectedEntities.some(e => e.text === entity.text && e.entity_type === entity.entity_type)) {
-      setSelectedEntities(selectedEntities.filter(
-        e => !(e.text === entity.text && e.entity_type === entity.entity_type)
-      ));
+  const handleCheck = (entityType: string) => {
+    if (selectedEntityTypes.includes(entityType)) {
+      setSelectedEntityTypes(selectedEntityTypes.filter(type => type !== entityType));
     } else {
-      setSelectedEntities([...selectedEntities, entity]);
+      setSelectedEntityTypes([...selectedEntityTypes, entityType]);
     }
   };
   
-  const isSelected = (entity: PiiEntityDto) => {
-    return selectedEntities.some(
-      e => e.text === entity.text && e.entity_type === entity.entity_type
-    );
+  const isSelected = (entityType: string) => {
+    return selectedEntityTypes.includes(entityType);
   };
   
   const handleAnonymize = async () => {
-    if (selectedEntities.length === 0) {
-      setError('Please select at least one entity to anonymize');
+    if (selectedEntityTypes.length === 0) {
+      setError('Please select at least one entity type to anonymize');
       return;
     }
     
@@ -51,7 +46,8 @@ export function AnonymizationForm({ document, onComplete }: AnonymizationFormPro
     setError(null);
     
     try {
-      const result = await api.anonymizeDocument(document.id, selectedEntities);
+      // Pass the selected entity types directly to the API
+      const result = await api.anonymizeDocument(document.id, selectedEntityTypes);
       setAnonymizationResult({
         status: result.status,
         time_taken: result.time_taken
@@ -87,12 +83,11 @@ export function AnonymizationForm({ document, onComplete }: AnonymizationFormPro
             </div>
             
             <div className="space-y-2">
-              <h4 className="font-medium">Anonymized Entities:</h4>
+              <h4 className="font-medium">Anonymized Entity Types:</h4>
               <div className="space-y-2">
-                {selectedEntities.map((entity, idx) => (
+                {selectedEntityTypes.map((entityType, idx) => (
                   <div key={idx} className="flex items-center gap-2">
-                    <Badge>{entity.entity_type}</Badge>
-                    <span>{entity.text}</span>
+                    <Badge>{entityType}</Badge>
                   </div>
                 ))}
               </div>
@@ -110,9 +105,9 @@ export function AnonymizationForm({ document, onComplete }: AnonymizationFormPro
         ) : (
           <div className="space-y-4">
             <div>
-              <h3 className="text-lg font-medium mb-2">Select PII Entities to Anonymize</h3>
+              <h3 className="text-lg font-medium mb-2">Select PII Entity Types to Anonymize</h3>
               <p className="text-sm text-gray-500 mb-4">
-                Choose which personally identifiable information should be anonymized in the document.
+                Choose which types of personally identifiable information should be anonymized in the document.
               </p>
               
               {Object.entries(piiGroups).length === 0 ? (
@@ -122,22 +117,22 @@ export function AnonymizationForm({ document, onComplete }: AnonymizationFormPro
                   {Object.entries(piiGroups).map(([type, entities]) => (
                     <div key={type} className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <h4 className="font-medium">{type}</h4>
+                        <Checkbox 
+                          id={`entity-type-${type}`}
+                          checked={isSelected(type)}
+                          onCheckedChange={() => handleCheck(type)}
+                        />
+                        <label 
+                          htmlFor={`entity-type-${type}`} 
+                          className="font-medium cursor-pointer"
+                        >
+                          {type} ({entities.length})
+                        </label>
                       </div>
-                      <div className="space-y-2 pl-2 border-l-2 border-gray-200">
+                      <div className="space-y-2 pl-6 border-l-2 border-gray-200">
                         {entities.map((entity: any, idx) => (
-                          <div key={idx} className="flex items-center gap-2">
-                            <Checkbox 
-                              id={`entity-${type}-${idx}`}
-                              checked={isSelected(entity)}
-                              onCheckedChange={() => handleCheck(entity)}
-                            />
-                            <label 
-                              htmlFor={`entity-${type}-${idx}`} 
-                              className="text-sm cursor-pointer"
-                            >
-                              {entity.text}
-                            </label>
+                          <div key={idx} className="text-sm text-gray-600">
+                            {entity.text}
                           </div>
                         ))}
                       </div>
@@ -159,7 +154,7 @@ export function AnonymizationForm({ document, onComplete }: AnonymizationFormPro
               </Button>
               <Button 
                 onClick={handleAnonymize} 
-                disabled={isProcessing || selectedEntities.length === 0}
+                disabled={isProcessing || selectedEntityTypes.length === 0}
               >
                 {isProcessing ? 'Processing...' : 'Anonymize Document'}
               </Button>
