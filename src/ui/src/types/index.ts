@@ -20,9 +20,6 @@ export interface PiiEntityDto {
   score?: number;
 }
 
-export interface DocumentAnonymizationRequest {
-  pii_entities_to_anonymize: PiiEntityDto[];
-}
 
 export interface DocumentAnonymizationResponse {
   id: string;

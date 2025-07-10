@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { api } from '../lib/api';
-import { downloadBlob } from '../lib/utils';
 
 export function DeanonymizeForm() {
   const [file, setFile] = useState<File | null>(null);

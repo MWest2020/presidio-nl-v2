@@ -4,7 +4,7 @@ import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { formatDate, groupPiiEntitiesByType } from '../lib/utils';
 import { api } from '../lib/api';
-import type { DocumentDto, PiiEntityDto } from '../types';
+import type { DocumentDto } from '../types';
 
 interface DocumentViewerProps {
   documentId: string;
