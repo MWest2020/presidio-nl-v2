@@ -57,24 +57,25 @@ export function DocumentUpload({ onUploadSuccess }: DocumentUploadProps) {
   };
 
   return (
-    <Card className="mb-6">
-      <CardHeader>
+    <Card className="h-full flex flex-col">
+      <CardHeader className="flex-none">
         <CardTitle>Upload Document</CardTitle>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <CardContent className="flex-grow">
+        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
           <div>
             <Input 
               type="file" 
               onChange={handleFileChange} 
               accept=".pdf"
               disabled={isLoading}
+              className="w-full"
             />
             <p className="mt-1 text-xs text-gray-500">Only PDF files are supported</p>
           </div>
           
           <div>
-            <label htmlFor="tags" className="block text-sm font-medium mb-1">
+            <label htmlFor="tags" className="block text-xs sm:text-sm font-medium mb-1">
               Tags (comma separated)
             </label>
             <Input
@@ -83,12 +84,13 @@ export function DocumentUpload({ onUploadSuccess }: DocumentUploadProps) {
               onChange={(e) => setTags(e.target.value)}
               placeholder="personal, financial, medical"
               disabled={isLoading}
+              className="w-full"
             />
           </div>
           
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {error && <p className="text-red-500 text-xs sm:text-sm">{error}</p>}
           
-          <Button type="submit" disabled={isLoading}>
+          <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
             {isLoading ? 'Uploading...' : 'Upload Document'}
           </Button>
         </form>

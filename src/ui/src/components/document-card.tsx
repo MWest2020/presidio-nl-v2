@@ -12,28 +12,28 @@ interface DocumentCardProps {
 
 export function DocumentCard({ document, onViewClick, onAnonymizeClick }: DocumentCardProps) {
   return (
-    <Card className="mb-4">
-      <CardHeader>
-        <CardTitle className="flex justify-between items-center">
-          <span>{document.filename}</span>
-          <Badge>{document.content_type}</Badge>
+    <Card className="h-full flex flex-col">
+      <CardHeader className="flex-none">
+        <CardTitle className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-base sm:text-lg">
+          <span className="truncate max-w-full">{document.filename}</span>
+          <Badge className="whitespace-nowrap">{document.content_type}</Badge>
         </CardTitle>
-        <p className="text-sm text-gray-500">Uploaded: {formatDate(document.uploaded_at)}</p>
+        <p className="text-xs sm:text-sm text-gray-500">Uploaded: {formatDate(document.uploaded_at)}</p>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-grow">
         {document.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-3">
             {document.tags.map(tag => (
-              <Badge key={tag.id} variant="secondary">{tag.name}</Badge>
+              <Badge key={tag.id} variant="secondary" className="text-xs">{tag.name}</Badge>
             ))}
           </div>
         )}
       </CardContent>
-      <CardFooter className="flex justify-end gap-2">
-        <Button variant="outline" onClick={() => onViewClick(document.id)}>
+      <CardFooter className="flex flex-col sm:flex-row sm:justify-end gap-2 mt-auto">
+        <Button variant="outline" onClick={() => onViewClick(document.id)} className="w-full sm:w-auto">
           View Details
         </Button>
-        <Button onClick={() => onAnonymizeClick(document.id)}>
+        <Button onClick={() => onAnonymizeClick(document.id)} className="w-full sm:w-auto">
           Anonymize
         </Button>
       </CardFooter>
