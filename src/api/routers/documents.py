@@ -64,7 +64,7 @@ async def upload_document(
     # username: str = Depends(get_user),
 ) -> AddDocumentResponse:
     validate_files_extensions(files)
-    docs = await pdf_xmp.upload_and_analyze_files(files, tags, db)
+    docs = await pdf_xmp.upload_and_analyze_files(files=files, tags=tags, db=db)
 
     return AddDocumentResponseSuccess(files=docs)
 

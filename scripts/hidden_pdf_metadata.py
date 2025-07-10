@@ -35,6 +35,7 @@ def annotate_pdf(
     occurrences = []
     for page_number, page in enumerate(doc, start=1):
         rects = page.search_for(target)
+        page: pymupdf.Page
         for r in rects:
             if replacement is not None:
                 # First record the original occurrence
@@ -47,7 +48,7 @@ def annotate_pdf(
                 )
                 # Then apply the redaction
                 page.add_redact_annot(r, fill=(1, 1, 1), text=replacement)
-                page.apply_redactions()
+                page.apply_redactions()  # type: ignore
             else:
                 # Record occurrence without redacting
                 occurrences.append(

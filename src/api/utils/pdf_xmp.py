@@ -111,11 +111,20 @@ def process_anonymized_pdf_to_deanonymize(
     return doc
 
 
-async def create_temp_paths_and_save(file):
+async def create_temp_paths_and_save(file: UploadFile) -> Tuple[Path, Path]:
+    """Create temporary paths for the uploaded file and save its content.
+
+    Extracted from documents router to keep the code DRY.
+
+    Args:
+        file (UploadFile): The uploaded file to be processed. (fastapi UploadFile)
+
+    Returns:
+        Tuple[Path, Path]: A tuple containing the paths to the anonymized and deanonymized files.
+    """
     content = await file.read()
     await file.close()
 
-    # Create temp file for the uploaded anonymized document
     temp_dir = Path("temp/deanonymized")
     temp_dir.mkdir(parents=True, exist_ok=True)
 
@@ -129,7 +138,7 @@ async def create_temp_paths_and_save(file):
 
 
 async def upload_and_analyze_files(
-    files: list[UploadFile], tags: list[str], db: Session
+    files: list[UploadFile], tags: Optional[list[str]], db: Session
 ):
     """Upload files, analyze them for PII entities, and store metadata in the database.
 
@@ -229,7 +238,7 @@ def analyze_and_anonymize_document(
             import pymupdf
 
             pdf_doc: pymupdf.Document = pymupdf.open(source_path)
-            text = "\n".join(p.get_text() for p in pdf_doc)
+            text = "\n".join(p.get_text() for p in pdf_doc)  # type: ignore
             pdf_doc.close()
         except Exception:
             text = ""
@@ -294,10 +303,11 @@ def analyze_and_anonymize_document(
 
 
 def extract_text_from_pdf(source_path: Path) -> str:
+    """Extract text from a PDF file using PyMuPDF."""
     text = ""
     try:
         doc = pymupdf.open(str(source_path))
-        text = "\n".join(page.get_text() for page in doc)
+        text = "\n".join(page.get_text() for page in doc)  # type: ignore
         doc.close()
     except Exception:
         text = ""
@@ -360,8 +370,8 @@ def anonymize_pdf(
 
     for target, entity_type in replacements.items():
         mask = masks.get(entity_type, f"[{entity_type.upper()}]")
-        for page_idx, page in enumerate(doc):
-            page: pymupdf.Page
+        for page_idx, page in enumerate(doc):  # type: ignore
+            page: pymupdf.Page  # type: ignore
             rects = page.search_for(target)
             for r in rects:
                 # Get text style information around the target text
@@ -417,7 +427,9 @@ def anonymize_pdf(
 
 
 def extract_font_details(
-    page_idx: int, page: pymupdf.Page, r: pymupdf.Rect
+    page_idx: int,
+    page: pymupdf.Page,  # type: ignore
+    r: pymupdf.Rect,
 ) -> Tuple[int, str]:
     """Extract font size and name from the text span at the given rectangle.
 
@@ -432,7 +444,7 @@ def extract_font_details(
     font_size = 11  # Default font size if we can't determine
     font_name = "Helvetica"
     try:
-        blocks = page.get_text("dict")["blocks"]
+        blocks = page.get_text("dict")["blocks"]  # type: ignore
     except Exception as e:
         if "font" in str(e):
             logging.warning(f"Could not determine font for page {page_idx + 1}: {e}")
@@ -562,6 +574,8 @@ def try_all_extraction_methods(
         return occurrences
     except Exception as e:
         logging.error(f"Failed to retrieve JSON occurrences: {e}")
+
+    return []
 
 
 def retrieve_occurrences_xmp_from_cdata(
@@ -738,7 +752,7 @@ def retrieve_json_occurrencesfrom_xmp(
             # Reconstruct the full JSON string
             json_blob = f'{{"occurrences": [{match.group(1)}]}}'
             data = json.loads(json_blob)
-            occurrences = data.get("occurrences", [])
+            occurrences: list = data.get("occurrences", [])
             if occurrences:
                 logging.debug(
                     f"Found {len(occurrences)} occurrences using JSON pattern search"
@@ -762,7 +776,7 @@ def retrieve_json_occurrencesfrom_xmp(
         except (json.JSONDecodeError, Exception) as e:
             logging.error(f"Failed to parse JSON from pattern search: {e}")
 
-        return []  # No valid occurrences found
+    return []  # No valid occurrences found
 
 
 def _embed_occurrences_xmp(pdf_path: str, occs: List[_Occurrence]) -> None:
