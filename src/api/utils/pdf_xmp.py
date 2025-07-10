@@ -107,7 +107,7 @@ def process_anonymized_pdf_to_deanonymize(
 
                     original_text = ann["entity"]
                     page.add_redact_annot(rect, fill=(1, 1, 1), text=original_text)
-                    page.apply_redactions()
+                    page.apply_redactions()  # type: ignore
     return doc
 
 
@@ -141,7 +141,6 @@ async def upload_and_analyze_files(
     Returns:
         _type_: list[DocumentDto]
     """
-    analyzer = ModularTextAnalyzer()
     docs: list[DocumentDto] = []
 
     for file in files:
@@ -157,7 +156,7 @@ async def upload_and_analyze_files(
 
         text = extract_text_from_pdf(source_path)
 
-        entities, unique = await extract_unique_entities(text=text, analyzer=analyzer)
+        entities, unique = await extract_unique_entities(text=text)
 
         db_document = create_document(
             db,
@@ -397,7 +396,7 @@ def anonymize_pdf(
                         text=mask,
                         fontsize=font_size,
                     )
-                    page.apply_redactions()
+                    page.apply_redactions()  # type: ignore
                 except Exception as e:
                     logging.error(
                         f"Failed to add redaction for target='{target.encode('utf-8', errors='replace').decode('ascii', errors='ignore')} on page {page_idx + 1}: {e}"
@@ -489,8 +488,95 @@ def extract_annotations(
         return []
 
     # Try multiple extraction methods for maximum compatibility
+    occurrences: list[dict] = try_all_extraction_methods(
+        decryption_key=decryption_key, header=header, xmp_xml=xmp_xml
+    )
+    if occurrences:
+        logging.debug(f"Found {len(occurrences)} occurrences in XMP metadata")
+        return occurrences
+    else:
+        # No annotations found with any method
+        logging.debug("No annotations found in XMP with any extraction method")
+        return []
 
+
+def try_all_extraction_methods(
+    decryption_key: bytes | None, header: bytes, xmp_xml: str
+) -> List[dict]:
+    """Try all available methods to extract occurrences from XMP XML.
+
+    Wrapper function that attempts multiple extraction methods in order of preference.
+    Includes:
+        - CDATA section extraction (Method 1), fn: retrieve_occurrences_xmp_from_cdata
+        - Attribute-style extraction (Method 2), fn: retrieve_occurrences_from_xmp_attributes
+        - Old format with multiple Description elements (Method 3), fn: retrieve_custom_properties_from_xmp
+        - JSON pattern search (Method 4), fn: retrieve_json_occurrencesfrom_xmp
+
+    Args:
+        decryption_key (bytes | None): _description_
+        header (bytes): _description_
+        xmp_xml (str): _description_
+
+    Returns:
+        List[dict]: _description_
+    """
     # Method 1: Look for CDATA section with various patterns
+    occurrences = retrieve_occurrences_xmp_from_cdata(decryption_key, header, xmp_xml)
+
+    # return occurrences
+    # Method 2: Try attribute-style extraction
+    try:
+        occurrences = retrieve_occurrences_from_xmp_attributes(
+            decryption_key, header, xmp_xml
+        )
+        if occurrences:
+            logging.debug(
+                f"Found {len(occurrences)} occurrences using attribute pattern"
+            )
+            return occurrences
+    except Exception as e:
+        logging.error(f"Failed to retrieve occurrences from XMP attributes: {e}")
+
+    # Method 3: Fallback to the old format with multiple Description elements
+    # return occurrences
+    try:
+        annotations = retrieve_custom_properties_from_xmp(
+            decryption_key, header, xmp_xml
+        )
+        if annotations:
+            logging.debug(f"Found {len(annotations)} annotations using old format")
+            return annotations
+
+    except Exception as e:
+        logging.error(f"Failed to retrieve custom properties from XMP: {e}")
+        annotations = []
+
+    # Method 4: Last resort - try to find JSON anywhere in the XMP
+    # This is a bit risky but might catch JSON embedded in unusual ways
+    try:
+        occurrences = retrieve_json_occurrencesfrom_xmp(decryption_key, header, xmp_xml)
+        if occurrences:
+            logging.debug(
+                f"Found {len(occurrences)} occurrences using JSON pattern search"
+            )
+        return occurrences
+    except Exception as e:
+        logging.error(f"Failed to retrieve JSON occurrences: {e}")
+
+
+def retrieve_occurrences_xmp_from_cdata(
+    decryption_key: bytes | None, header: bytes, xmp_xml: str
+) -> List[dict]:
+    """Retrieve occurrences from XMP XML using CDATA patterns. Method 1.
+
+    Args:
+        decryption_key (bytes | None): the key to decrypt entities, if available.
+        header (bytes): the header used for decryption.
+        xmp_xml (str): the XMP XML string to search for occurrences.
+
+    Returns:
+        List[dict]: A list of occurrences extracted from the XMP XML.
+    """
     cdata_patterns = [
         r"<custom:AnnotationData><!\[CDATA\[(.*?)\]\]></custom:AnnotationData>",
         r"<custom:AnnotationData>\s*<!\[CDATA\[(.*?)\]\]>\s*</custom:AnnotationData>",
@@ -534,14 +620,30 @@ def extract_annotations(
                             logging.debug(
                                 "No decryption key provided, skipping entity decryption"
                             )
-
                         return occurrences
+
             except json.JSONDecodeError as e:
                 logging.error(f"Failed to parse JSON from pattern match: {e}")
                 blob_preview = json_blob[:100] if json_blob else "empty"
                 logging.debug(f"JSON data preview: {blob_preview}...")
+                continue  # Try the next pattern if this one fails
+    logging.debug("No occurrences found in XMP using CDATA patterns")
+    return []  # No occurrences found with any of the CDATA patterns
 
-    # Method 2: Try attribute-style extraction
+
+def retrieve_occurrences_from_xmp_attributes(
+    decryption_key: bytes | None, header: bytes, xmp_xml: str
+) -> List[dict]:
+    """Retrieve occurrences from XMP XML using attribute pattern. Method 2.
+
+    Args:
+        decryption_key (bytes | None): the key to decrypt entities, if available.
+        header (bytes): the header used for decryption.
+        xmp_xml (str): the XMP XML string to search for occurrences.
+
+    Returns:
+        List[dict]: A list of occurrences extracted from the XMP XML.
+    """
     attr_start = xmp_xml.find('custom:AnnotationData="')
     if attr_start != -1:
         attr_start += len('custom:AnnotationData="')
@@ -576,12 +678,26 @@ def extract_annotations(
                                     except Exception as e:
                                         logging.error(f"Failed to decrypt entity: {e}")
                                         occ["entity"] = None
-
                         return occurrences
+
             except json.JSONDecodeError as e:
                 logging.error(f"Failed to parse JSON from attribute: {e}")
+    return []  # No occurrences found with this method
 
-    # Method 3: Fallback to the old format with multiple Description elements
+
+def retrieve_custom_properties_from_xmp(
+    decryption_key: bytes | None, header: bytes, xmp_xml: str
+) -> List[dict]:
+    """Retrieve custom properties from XMP XML using regex. Method 3.
+
+    Args:
+        decryption_key (bytes | None): the key to decrypt entities, if available.
+        header (bytes): the header used for decryption.
+        xmp_xml (str): the XMP XML string to search for custom properties.
+
+    Returns:
+        List[dict]: A list of dictionaries containing custom properties extracted from the XMP XML.
+    """
     tag_re = re.compile(r"<rdf:Description([^>]*)/>", re.DOTALL)
     prop_re = re.compile(r"custom:([A-Za-z]+)=\"([^\"]*)\"")
 
@@ -599,13 +715,22 @@ def extract_annotations(
                 except Exception:
                     props["entity"] = None  # leave undecoded # type: ignore
             annotations.append(props)
+    return annotations
 
-    if annotations:
-        logging.debug(f"Found {len(annotations)} annotations using old format")
-        return annotations
 
-    # Method 4: Last resort - try to find JSON anywhere in the XMP
-    # This is a bit risky but might catch JSON embedded in unusual ways
+def retrieve_json_occurrencesfrom_xmp(
+    decryption_key: bytes | None, header: bytes, xmp_xml: str
+) -> List[dict]:
+    """Retrieve occurrences from XMP XML using a JSON pattern. Method 4.
+
+    Args:
+        decryption_key (bytes | None): the key to decrypt entities, if available.
+        header (bytes): the header used for decryption.
+        xmp_xml (str): the XMP XML string to search for occurrences.
+
+    Returns:
+        List[dict]: A list of occurrences extracted from the XMP XML.
+    """
     json_pattern = r'\{"occurrences":\s*\[(.*?)\]\}'
     match = re.search(json_pattern, xmp_xml, re.DOTALL)
     if match:
@@ -633,14 +758,11 @@ def extract_annotations(
                             except Exception as e:
                                 logging.error(f"Failed to decrypt entity: {e}")
                                 occ["entity"] = None
-
                 return occurrences
         except (json.JSONDecodeError, Exception) as e:
             logging.error(f"Failed to parse JSON from pattern search: {e}")
 
-    # No annotations found with any method
-    logging.debug("No annotations found in XMP with any extraction method")
-    return []
+        return []  # No valid occurrences found
 
 
 def _embed_occurrences_xmp(pdf_path: str, occs: List[_Occurrence]) -> None:
