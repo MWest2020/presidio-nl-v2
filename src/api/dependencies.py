@@ -23,7 +23,7 @@ security = HTTPBasic()
 
 def get_user(
     credentials: Annotated[HTTPBasicCredentials, Depends(security)],
-):
+) -> str:
     """Get the current user based on HTTP Basic Authentication.
 
     Based on the reference implementation from FastAPI documentation:
