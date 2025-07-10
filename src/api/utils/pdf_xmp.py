@@ -106,7 +106,7 @@ def process_anonymized_pdf_to_deanonymize(
                     rect = pymupdf.Rect(*rect)
 
                     original_text = ann["entity"]
-                    page.add_redact_annot(rect, fill=(1, 1, 1), text=original_text)
+                    page.add_redact_annot(rect, fill=(1, 1, 1), text=original_text)  # type: ignore
                     page.apply_redactions()  # type: ignore
     return doc
 
@@ -139,7 +139,7 @@ async def create_temp_paths_and_save(file: UploadFile) -> Tuple[Path, Path]:
 
 async def upload_and_analyze_files(
     files: list[UploadFile], tags: Optional[list[str]], db: Session
-):
+) -> list[DocumentDto]:
     """Upload files, analyze them for PII entities, and store metadata in the database.
 
     Args:
@@ -604,7 +604,7 @@ def retrieve_occurrences_xmp_from_cdata(
             try:
                 data = json.loads(json_blob)
                 if isinstance(data, dict) and "occurrences" in data:
-                    occurrences = data["occurrences"]
+                    occurrences: list = data["occurrences"]
                     if occurrences:
                         logging.debug(
                             f"Found {len(occurrences)} occurrences using CDATA pattern"
@@ -670,7 +670,7 @@ def retrieve_occurrences_from_xmp_attributes(
             try:
                 data = json.loads(unescaped_json)
                 if isinstance(data, dict) and "occurrences" in data:
-                    occurrences = data["occurrences"]
+                    occurrences: list = data["occurrences"]
                     if occurrences:
                         logging.debug(
                             f"Found {len(occurrences)} occurrences using attribute pattern"
@@ -726,8 +726,8 @@ def retrieve_custom_properties_from_xmp(
                         props["encrypted_entity"], decryption_key, header
                     )
                     props["entity"] = plaintext.decode("utf-8", errors="replace")
-                except Exception:
-                    props["entity"] = None  # leave undecoded # type: ignore
+                except Exception:  # leave undecoded
+                    props["entity"] = None  # type: ignore
             annotations.append(props)
     return annotations
 
