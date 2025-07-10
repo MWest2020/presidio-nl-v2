@@ -21,6 +21,18 @@ services:
       - presidio-data:/app/
     networks:
       - presidio-network
+      
+  ui:
+    build:
+      context: ./src/ui
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - presidio-nl
+    networks:
+      - presidio-network
 
 volumes:
   presidio-data:
