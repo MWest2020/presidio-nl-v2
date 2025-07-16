@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# APP specific
+/temp/
+*.db 
+
 # C extensions
 *.so
 
@@ -79,7 +83,6 @@ Thumbs.db
 
 # Local env
 .env
-.env.*
 
 # Deployment configurations with sensitive info
 *-prod.yaml

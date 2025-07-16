@@ -34,9 +34,28 @@ class Settings:
     SUPPORTED_UPLOAD_EXTENSIONS = [
         "pdf",
     ]
-    CRYPTO_KEY = (
-        os.getenv("CRYPTO_KEY").encode("utf-8") if os.getenv("CRYPTO_KEY") else None
-    )
+    SUPPORTED_PII_ENTITIES_TO_ANONYMIZE = [
+        "PERSON",
+        "LOCATION",
+        "PHONE_NUMBER",
+        "EMAIL",
+        "ORGANIZATION",
+        "IBAN",
+        "ADDRESS",
+    ]
+    key = os.getenv("CRYPTO_KEY")
+    if key:
+        CRYPTO_KEY = key.encode("utf-8")
+    else:
+        logging.warning(
+            "CRYPTO_KEY is not set. Using default value. This is not secure for production!"
+        )
+        CRYPTO_KEY = b"secret"
+    DATABASE_URL = "sqlite:///./openanonymiser.db"
+    KEEP_TEMP_FILES = os.getenv("KEEP_TEMP_FILES", "false").lower() == "true"
+
+    BASIC_AUTH_USERNAME = os.getenv("BASIC_AUTH_USERNAME", "admin")
+    BASIC_AUTH_PASSWORD = os.getenv("BASIC_AUTH_PASSWORD", "password")
 
 
 settings: Settings = Settings()
@@ -71,6 +90,7 @@ def setup_logging() -> None:
                     "class": "logging.StreamHandler",
                     "formatter": "default",
                     "level": console_log_level,
+                    "stream": "ext://sys.stdout",  # Use stdout with UTF-8 encoding
                 },
             },
             "root": {
@@ -78,7 +98,12 @@ def setup_logging() -> None:
                 "handlers": ["file", "stream"],
             },
             "loggers": {
-                # "add custom loggers to disable here!"
+                "python_multipart.multipart": {
+                    "level": "WARNING",
+                    "handlers": ["file", "stream"],
+                    "propagate": False,
+                },
+                # Add other custom loggers to disable here if needed
             },
         }
     )

@@ -3,7 +3,7 @@
 import hashlib
 import hmac
 import json
-from base64 import b64encode
+from base64 import b64decode, b64encode
 from typing import Union
 
 from Crypto.Cipher import AES
@@ -64,13 +64,38 @@ def aes_gcm_encrypt(
 
     ciphertext, tag = cipher.encrypt_and_digest(data)
 
-    json_k = ["nonce", "header", "ciphertext", "tag"]
-    json_v = [
-        b64encode(x).decode("utf-8") for x in (cipher.nonce, header, ciphertext, tag)
-    ]
-    result = json.dumps(dict(zip(json_k, json_v)))
-    return result
+    fields = {
+        "nonce": b64encode(cipher.nonce).decode(),
+        "header": b64encode(header).decode(),
+        "ciphertext": b64encode(ciphertext).decode(),
+        "tag": b64encode(tag).decode(),
+    }
+    return json.dumps(fields, separators=(",", ":"))
 
 
-# Example usage:
-# aes_gcm_encrypt(b"secret")
+def aes_gcm_decrypt(blob: str, key: bytes, header: bytes = b"header") -> bytes:
+    """Reverse *aes_gcm_encrypt*.
+
+    Args:
+        blob: JSON string containing nonce, header, ciphertext, and tag
+        key: Encryption key
+        header: Additional authenticated data (default: b"header")
+
+    Returns:
+        Decrypted data as bytes
+
+    Raises:
+        ValueError: If the AAD does not match the header or if decryption fails
+    """
+    data = json.loads(blob)
+    nonce = b64decode(data["nonce"])
+    aad = b64decode(data["header"])
+    ciphertext = b64decode(data["ciphertext"])
+    tag = b64decode(data["tag"])
+
+    if aad != header:
+        raise ValueError("AAD mismatch – wrong header supplied")
+
+    cipher = AES.new(key, AES.MODE_GCM, nonce=nonce)
+    cipher.update(header)
+    return cipher.decrypt_and_verify(ciphertext, tag)
