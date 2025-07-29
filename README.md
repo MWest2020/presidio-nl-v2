@@ -14,18 +14,32 @@ uv sync
 uv run api.py
 ```
 
-De API is nu bereikbaar op [http://localhost:8080/docs](http://localhost:8080/api/v1docs) (Swagger UI).
+De API is nu bereikbaar op [http://localhost:8080/api/v1/docs](http://localhost:8080/api/v1/docs) (Swagger UI).
 
-### 2. Docker build & run
+### 2. Docker Compose (aanbevolen)
 
-Bouw het image (bijvoorbeeld met naam `presidio-nl`):
+Start beide services (API + UI) met docker-compose:
+
+```bash
+docker-compose up -d
+```
+
+Na opstarten zijn de services bereikbaar op:
+- **API**: [http://localhost:8001/api/v1/docs](http://localhost:8001/api/v1/docs) (Swagger UI)
+- **UI**: [http://localhost:8002](http://localhost:8002) (Web interface)
+
+### 3. Individuele Docker containers
+
+Bouw het backend image:
 
 ```bash
 docker build -t openanonymizer .
 ```
 
-Start de container:
+Start alleen de backend container:
 
 ```bash
-docker run -d -p 8000:8080 --name presidio-nl presidio-nl
+docker run -d -p 8001:8080 --name openanonymiser openanonymizer
 ```
+
+API bereikbaar op [http://localhost:8001/api/v1/docs](http://localhost:8001/api/v1/docs)
