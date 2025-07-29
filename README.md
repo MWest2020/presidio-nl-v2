@@ -43,3 +43,70 @@ docker run -d -p 8001:8080 --name openanonymiser openanonymizer
 ```
 
 API bereikbaar op [http://localhost:8001/api/v1/docs](http://localhost:8001/api/v1/docs)
+
+### 4. Kubernetes met Helm (productie)
+
+Installeer de API service in Kubernetes met Helm:
+
+```bash
+# Installeer de chart
+helm install openanonymiser ./charts/openanonymiser
+
+# Of met custom values
+helm install openanonymiser ./charts/openanonymiser -f values-production.yaml
+
+# Upgrade bestaande deployment
+helm upgrade openanonymiser ./charts/openanonymiser
+```
+
+#### Helm configuratie
+
+Belangrijke configureerbare waarden in `values.yaml`:
+
+```yaml
+# Image configuratie
+image:
+  repository: mwest2020/openanonymiser
+  tag: latest
+
+# Ingress voor externe toegang
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: "api.openanonymiser.example.com"
+
+# Environment variabelen
+app:
+  env:
+    defaultNlpEngine: "spacy"          # of "transformers"
+    defaultSpacyModel: "nl_core_news_md"
+    cryptoKey: "your-secret-key"       # Wijzig dit!
+  auth:
+    username: "admin"                  # Wijzig dit!
+    password: "secure-password"        # Wijzig dit!
+
+# Resources
+resources:
+  requests:
+    cpu: 500m
+    memory: 4Gi
+  limits:
+    cpu: 1500m
+    memory: 8Gi
+```
+
+#### Productie setup
+
+Voor productie gebruik:
+
+1. **Secrets**: Gebruik Kubernetes secrets voor gevoelige waarden:
+```bash
+kubectl create secret generic openanonymiser-secrets \
+  --from-literal=crypto-key=your-secret-key \
+  --from-literal=auth-password=secure-password
+```
+
+2. **TLS**: Enable TLS in ingress configuratie
+
+3. **Monitoring**: Health checks zijn al geconfigureerd op `/health`
