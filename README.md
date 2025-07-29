@@ -46,6 +46,16 @@ API bereikbaar op [http://localhost:8001/api/v1/docs](http://localhost:8001/api/
 
 ### 4. Kubernetes met Helm (productie)
 
+**⚠️ KRITIEKE VEREISTE: PERSISTENT STORAGE** 
+
+OpenAnonymiser vereist persistent storage voor:
+- SQLite database (`/app/openanonymiser.db`)
+- Geüploade PDF-bestanden (`/app/temp/source/`) 
+- Geanonimiseerde bestanden (`/app/temp/anonymized/`)
+- Applicatielogs (`/app/logs/`)
+
+**Zonder PVC gaan alle gegevens verloren bij pod restart!**
+
 Installeer de API service in Kubernetes met Helm:
 
 ```bash
@@ -75,6 +85,12 @@ ingress:
   className: nginx
   hosts:
     - host: "api.openanonymiser.example.com"
+
+# KRITIEK: Persistent storage configuratie
+persistence:
+  enabled: true                    # VERPLICHT voor productie!
+  storageClass: "fast-ssd"        # Pas aan voor jouw cluster
+  size: 50Gi                      # Database + bestanden
 
 # Environment variabelen
 app:

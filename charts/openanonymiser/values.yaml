@@ -67,6 +67,11 @@ persistence:
   enabled: true
   storageClass: "nfs"
   size: 25Gi
+  # Critical: This volume stores:
+  # - SQLite database (/app/openanonymiser.db)
+  # - Uploaded files (/app/temp/source/)
+  # - Processed files (/app/temp/anonymized/, /app/temp/deanonymized/)
+  # - Application logs (/app/logs/)
 
 networkPolicy:
   enabled: true
@@ -104,11 +109,4 @@ app:
     cryptoKey: "your-secret-crypto-key"
   auth:
     username: "admin"
-    password: "admin"
-
-volumeMounts:
-  - name: logs-volume
-    mountPath: /app/logs
-volumes:
-  - name: logs-volume
-    emptyDir: {} 
+    password: "admin" 

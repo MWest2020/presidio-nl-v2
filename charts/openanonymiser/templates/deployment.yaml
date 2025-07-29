@@ -25,8 +25,14 @@ spec:
       volumes:
         - name: tmp-volume
           emptyDir: {}
-        - name: logs-volume
+        {{- if .Values.persistence.enabled }}
+        - name: data-volume
+          persistentVolumeClaim:
+            claimName: {{ include "openanonymiser.fullname" . }}-data
+        {{- else }}
+        - name: data-volume
           emptyDir: {}
+        {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -84,5 +90,7 @@ spec:
           volumeMounts:
             - name: tmp-volume
               mountPath: /tmp
-            - name: logs-volume
-              mountPath: /app/logs
+            {{- if .Values.persistence.enabled }}
+            - name: data-volume
+              mountPath: /app
+            {{- end }}

@@ -57,6 +57,12 @@ persistence:
   enabled: true
   storageClass: "fast-ssd"  # Use your preferred storage class
   size: 50Gi
+  # CRITICAL: This volume stores ALL application data:
+  # - SQLite database (/app/openanonymiser.db)
+  # - Uploaded PDF files (/app/temp/source/)
+  # - Processed files (/app/temp/anonymized/, /app/temp/deanonymized/)
+  # - Application logs (/app/logs/)
+  # WITHOUT this PVC, all data is lost on pod restart!
 
 # Application configuration
 app:
