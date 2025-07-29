@@ -33,4 +33,4 @@ HEALTHCHECK \
     --retries=5 \
   CMD ["python", "scripts/healthcheck.py", "--port", "8080"]
 
-CMD ["uv", "run", "--no-dev", "--frozen", "--no-cache", "api.py", "--host=0.0.0.0", "--workers=2", "--env=production", "--port=8080"]
+CMD ["uv", "run", "api.py", "--host", "0.0.0.0", "--workers", "2", "--env", "production", "--port", "8080"]
