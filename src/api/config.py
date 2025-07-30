@@ -51,8 +51,11 @@ class Settings:
             "CRYPTO_KEY is not set. Using default value. This is not secure for production!"
         )
         CRYPTO_KEY = b"secret"
-    DATABASE_URL = "sqlite:///./openanonymiser.db"
+    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./data/openanonymiser.db")
     KEEP_TEMP_FILES = os.getenv("KEEP_TEMP_FILES", "false").lower() == "true"
+
+    # Base directory for data files (used by temp directories)
+    DATA_DIR = os.getenv("DATA_DIR", "data")
 
     BASIC_AUTH_USERNAME = os.getenv("BASIC_AUTH_USERNAME", "admin")
     BASIC_AUTH_PASSWORD = os.getenv("BASIC_AUTH_PASSWORD", "password")

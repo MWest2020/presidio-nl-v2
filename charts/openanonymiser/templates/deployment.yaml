@@ -87,10 +87,17 @@ spec:
               value: {{ .Values.app.auth.username | quote }}
             - name: BASIC_AUTH_PASSWORD
               value: {{ .Values.app.auth.password | quote }}
+            # Data directory configuration for persistent volume
+            - name: LOG_DIR
+              value: "/app/data/logs"
+            - name: DATA_DIR
+              value: "/app/data"
+            - name: DATABASE_URL
+              value: "sqlite:///./data/openanonymiser.db"
           volumeMounts:
             - name: tmp-volume
               mountPath: /tmp
             {{- if .Values.persistence.enabled }}
             - name: data-volume
-              mountPath: /app
+              mountPath: /app/data
             {{- end }}

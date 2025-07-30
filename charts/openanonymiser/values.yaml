@@ -63,10 +63,10 @@ persistence:
   storageClass: "nfs"
   size: 25Gi
   # Critical: This volume stores:
-  # - SQLite database (/app/openanonymiser.db)
-  # - Uploaded files (/app/temp/source/)
-  # - Processed files (/app/temp/anonymized/, /app/temp/deanonymized/)
-  # - Application logs (/app/logs/)
+  # - SQLite database (/app/data/openanonymiser.db)
+  # - Uploaded files (/app/data/temp/source/)
+  # - Processed files (/app/data/temp/anonymized/, /app/data/temp/deanonymized/)
+  # - Application logs (/app/data/logs/)
 
 networkPolicy:
   enabled: true
