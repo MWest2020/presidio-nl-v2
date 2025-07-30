@@ -26,11 +26,6 @@ ingress:
       paths:
         - path: /
           pathType: Prefix
-          backend:
-            service:
-              name: openanonymiser
-              port:
-                number: 8080
   tls:
     - secretName: openanonymiser-tls
       hosts:
