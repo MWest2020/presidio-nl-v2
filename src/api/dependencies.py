@@ -15,7 +15,7 @@ from src.api.database import Base
 # Define the database engine and session
 engine = create_engine(settings.DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base.metadata.create_all(bind=engine)
+Base.metadata.create_all(bind=engine, checkfirst=True)
 
 # SEcurity stuff
 security = HTTPBasic()
