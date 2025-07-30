@@ -34,6 +34,6 @@ HEALTHCHECK \
     --timeout=5s \
     --start-period=25s \
     --retries=5 \
-  CMD ["python", "scripts/healthcheck.py", "--port", "8080"]
+  CMD [".venv/bin/python", "scripts/healthcheck.py", "--port", "8080"]
 
-CMD ["uv", "run", "api.py", "--host", "0.0.0.0", "--workers", "2", "--env", "production", "--port", "8080"]
+CMD [".venv/bin/python", "api.py", "--host", "0.0.0.0", "--workers", "2", "--env", "production", "--port", "8080"]
