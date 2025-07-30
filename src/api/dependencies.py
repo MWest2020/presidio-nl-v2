@@ -1,3 +1,4 @@
+import os
 import secrets
 from typing import Annotated, Generator
 
@@ -11,6 +12,9 @@ from sqlalchemy.orm import (
 
 from src.api.config import settings
 from src.api.database import Base
+
+# Ensure data directory exists before creating database
+os.makedirs(settings.DATA_DIR, exist_ok=True)
 
 # Define the database engine and session
 engine = create_engine(settings.DATABASE_URL, connect_args={"check_same_thread": False})
