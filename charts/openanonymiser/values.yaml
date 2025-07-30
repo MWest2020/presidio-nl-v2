@@ -70,7 +70,7 @@ persistence:
   # - Application logs (/app/data/logs/)
 
 networkPolicy:
-  enabled: true
+  enabled: false
   allowedNamespaces:
     - presidio
     - default
