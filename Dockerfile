@@ -16,6 +16,9 @@ COPY --chown=presidio:presidio pyproject.toml uv.lock ./
 
 USER presidio
 
+# Set UV cache directory for non-root user
+ENV UV_CACHE_DIR=/home/presidio/.cache/uv
+
 # resolve from uv.lock only, no dev dependencies
 RUN uv sync --frozen --no-dev --no-cache
 
