@@ -22,7 +22,7 @@ ingress:
     nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
     # cert-manager.io/cluster-issuer: "letsencrypt-prod"  # Uncomment for automatic TLS
   hosts:
-    - host: "openanonymiser.commonground.nu"
+    - host: "api.openanonymiser.commonground.nu"
       paths:
         - path: /
           pathType: Prefix
@@ -34,7 +34,7 @@ ingress:
   tls:
     - secretName: openanonymiser-tls
       hosts:
-        - openanonymiser.commonground.nu
+        - api.openanonymiser.commonground.nu
 
 # Production resources
 resources:

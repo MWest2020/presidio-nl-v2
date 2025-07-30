@@ -44,7 +44,7 @@ ingress:
     nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
     nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
   hosts:
-    - host: "openanonymiser.commonground.nu"
+    - host: "api.openanonymiser.commonground.nu"
       paths:
         - path: /
           pathType: Prefix
