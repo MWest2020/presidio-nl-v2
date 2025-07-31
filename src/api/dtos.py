@@ -65,40 +65,49 @@ class DocumentAnonymizationResponse(BaseModel):
 
 
 class PIIEntity(BaseModel):
-    """PII Entity with optional score (model-dependent)."""
+    """PII Entity with optional score and position info (model-dependent)."""
+
     entity_type: str
     text: str
-    score: Optional[Union[float, str]] = None  # Some models return empty string, others float
+    start: int  # Start position in original text
+    end: int    # End position in original text
+    score: Optional[Union[float, str]] = (
+        None  # Some models return empty string, others float
+    )
 
 
 class AnalyzeTextRequest(BaseModel):
     """Request DTO for POST /api/v1/analyze endpoint."""
+
     text: str
     language: str = settings.DEFAULT_LANGUAGE
     entities: Optional[list[str]] = None  # Filter specific entity types
     nlp_engine: Optional[str] = None  # Override default engine
-    
+
     @field_validator("text")
     def validate_text_not_empty(cls, value: str) -> str:
         """Ensure text is not empty."""
         if not value or not value.strip():
             raise ValueError("Text cannot be empty")
         return value.strip()
-    
+
     @field_validator("language")
     def validate_language(cls, value: str) -> str:
         """Validate language code."""
         supported_languages = ["nl", "en"]  # Extend as needed
         if value not in supported_languages:
-            raise ValueError(f"Unsupported language: {value}. Supported: {', '.join(supported_languages)}")
+            raise ValueError(
+                f"Unsupported language: {value}. Supported: {', '.join(supported_languages)}"
+            )
         return value
-    
+
     @field_validator("entities")
     def validate_entities(cls, value: Optional[list[str]]) -> Optional[list[str]]:
         """Validate entity types if provided."""
         if value is not None:
             unsupported_entities = [
-                entity for entity in value 
+                entity
+                for entity in value
                 if entity not in settings.SUPPORTED_PII_ENTITIES_TO_ANONYMIZE
             ]
             if unsupported_entities:
@@ -111,6 +120,7 @@ class AnalyzeTextRequest(BaseModel):
 
 class AnalyzeTextResponse(BaseModel):
     """Response DTO for POST /api/v1/analyze endpoint."""
+
     pii_entities: list[PIIEntity]
     text_length: int
     processing_time_ms: Optional[int] = None
@@ -119,33 +129,37 @@ class AnalyzeTextResponse(BaseModel):
 
 class AnonymizeTextRequest(BaseModel):
     """Request DTO for POST /api/v1/anonymize endpoint."""
+
     text: str
     language: str = settings.DEFAULT_LANGUAGE
     entities: Optional[list[str]] = None  # Anonymize specific entity types only
     nlp_engine: Optional[str] = None  # Override default engine
     anonymization_strategy: str = "replace"  # replace, mask, redact, etc.
-    
+
     @field_validator("text")
     def validate_text_not_empty(cls, value: str) -> str:
         """Ensure text is not empty."""
         if not value or not value.strip():
             raise ValueError("Text cannot be empty")
         return value.strip()
-    
+
     @field_validator("language")
     def validate_language(cls, value: str) -> str:
         """Validate language code."""
         supported_languages = ["nl", "en"]  # Extend as needed
         if value not in supported_languages:
-            raise ValueError(f"Unsupported language: {value}. Supported: {', '.join(supported_languages)}")
+            raise ValueError(
+                f"Unsupported language: {value}. Supported: {', '.join(supported_languages)}"
+            )
         return value
-    
+
     @field_validator("entities")
     def validate_entities(cls, value: Optional[list[str]]) -> Optional[list[str]]:
         """Validate entity types if provided."""
         if value is not None:
             unsupported_entities = [
-                entity for entity in value 
+                entity
+                for entity in value
                 if entity not in settings.SUPPORTED_PII_ENTITIES_TO_ANONYMIZE
             ]
             if unsupported_entities:
@@ -154,18 +168,21 @@ class AnonymizeTextRequest(BaseModel):
                     f"Supported: {', '.join(settings.SUPPORTED_PII_ENTITIES_TO_ANONYMIZE)}"
                 )
         return value
-    
-    @field_validator("anonymization_strategy") 
+
+    @field_validator("anonymization_strategy")
     def validate_strategy(cls, value: str) -> str:
         """Validate anonymization strategy."""
         supported_strategies = ["replace", "mask", "redact", "hash"]
         if value not in supported_strategies:
-            raise ValueError(f"Unsupported strategy: {value}. Supported: {', '.join(supported_strategies)}")
+            raise ValueError(
+                f"Unsupported strategy: {value}. Supported: {', '.join(supported_strategies)}"
+            )
         return value
 
 
 class AnonymizeTextResponse(BaseModel):
     """Response DTO for POST /api/v1/anonymize endpoint (consistent with Presidio)."""
+
     original_text: str
     anonymized_text: str
     entities_found: list[PIIEntity]
