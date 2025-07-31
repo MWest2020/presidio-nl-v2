@@ -46,26 +46,26 @@ async def analyze_text(
     request: AnalyzeTextRequest,
 ) -> AnalyzeTextResponse:
     """Analyze text for PII entities using the specified NLP engine.
-    
+
     This endpoint accepts a text string and returns detected PII entities
     with their positions, types, and confidence scores (when available).
-    
+
     Args:
         request: AnalyzeTextRequest containing text and analysis parameters
-        
+
     Returns:
         AnalyzeTextResponse with detected PII entities and metadata
-        
+
     Raises:
         HTTPException: On analysis failure or invalid parameters
     """
     start_time = time.perf_counter()
-    
+
     try:
         # Initialize analyzer with specified engine or use default
         nlp_engine = request.nlp_engine or settings.DEFAULT_NLP_ENGINE
         analyzer = ModularTextAnalyzer(nlp_engine=nlp_engine)
-        
+
         # Perform analysis
         entities_to_analyze = request.entities or settings.DEFAULT_ENTITIES
         results = analyzer.analyze_text(
@@ -73,25 +73,25 @@ async def analyze_text(
             entities=entities_to_analyze,
             language=request.language,
         )
-        
+
         # Convert results to DTOs
         pii_entities = create_pii_entities_from_results(results)
-        
+
         end_time = time.perf_counter()
         processing_time_ms = int((end_time - start_time) * 1000)
-        
+
         logger.info(
             f"Text analysis completed: {len(pii_entities)} entities found "
             f"in {processing_time_ms}ms using {nlp_engine} engine"
         )
-        
+
         return AnalyzeTextResponse(
             pii_entities=pii_entities,
             text_length=len(request.text),
             processing_time_ms=processing_time_ms,
             nlp_engine_used=nlp_engine,
         )
-        
+
     except Exception as e:
         logger.error(f"Text analysis failed: {str(e)}", exc_info=True)
         raise HTTPException(
@@ -105,26 +105,26 @@ async def anonymize_text(
     request: AnonymizeTextRequest,
 ) -> AnonymizeTextResponse:
     """Anonymize PII entities in text using the specified strategy.
-    
+
     This endpoint accepts a text string and returns the anonymized version
     along with details about the entities that were found and anonymized.
-    
+
     Args:
         request: AnonymizeTextRequest containing text and anonymization parameters
-        
+
     Returns:
         AnonymizeTextResponse with original text, anonymized text, and entities found
-        
+
     Raises:
         HTTPException: On anonymization failure or invalid parameters
     """
     start_time = time.perf_counter()
-    
+
     try:
         # Initialize analyzer with specified engine or use default
         nlp_engine = request.nlp_engine or settings.DEFAULT_NLP_ENGINE
         analyzer = ModularTextAnalyzer(nlp_engine=nlp_engine)
-        
+
         # First analyze to find entities
         entities_to_analyze = request.entities or settings.DEFAULT_ENTITIES
         analysis_results = analyzer.analyze_text(
@@ -132,25 +132,25 @@ async def anonymize_text(
             entities=entities_to_analyze,
             language=request.language,
         )
-        
+
         # Then anonymize the text
         anonymized_text = analyzer.anonymize_text(
             text=request.text,
             entities=entities_to_analyze,
             language=request.language,
         )
-        
+
         # Convert analysis results to DTOs
         entities_found = create_pii_entities_from_results(analysis_results)
-        
+
         end_time = time.perf_counter()
         processing_time_ms = int((end_time - start_time) * 1000)
-        
+
         logger.info(
             f"Text anonymization completed: {len(entities_found)} entities anonymized "
             f"in {processing_time_ms}ms using {nlp_engine} engine and {request.anonymization_strategy} strategy"
         )
-        
+
         return AnonymizeTextResponse(
             original_text=request.text,
             anonymized_text=anonymized_text,
@@ -160,7 +160,7 @@ async def anonymize_text(
             nlp_engine_used=nlp_engine,
             anonymization_strategy=request.anonymization_strategy,
         )
-        
+
     except Exception as e:
         logger.error(f"Text anonymization failed: {str(e)}", exc_info=True)
         raise HTTPException(

@@ -70,7 +70,7 @@ class PIIEntity(BaseModel):
     entity_type: str
     text: str
     start: int  # Start position in original text
-    end: int    # End position in original text
+    end: int  # End position in original text
     score: Optional[Union[float, str]] = (
         None  # Some models return empty string, others float
     )
