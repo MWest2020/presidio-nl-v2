@@ -9,7 +9,7 @@
 
 ---
 
-## 🎯 Phase 1: Stabiliteit & CI/CD Pipeline
+## 🎯 Theme 1: Stabiliteit & CI/CD Pipeline
 
 ### 1.1 Testing Infrastructure
 - [ ] **Unit Tests**
@@ -76,7 +76,7 @@
 
 ---
 
-## 📚 Phase 2: Documentation & Developer Experience
+## 📚 Theme 2: Documentatie & Developer Experience
 
 ### 2.1 API Documentation
 - [ ] **Interactive Documentation**
@@ -121,7 +121,7 @@
 
 ---
 
-## 🔧 Phase 3: New API Endpoints
+## 🔧 Theme 3: Nieuwe API Endpoints
 
 ### 3.1 String-based Analysis Endpoints
 - [ ] **POST /api/v1/analyze** 
@@ -160,64 +160,10 @@
 
 ---
 
-## 🔒 Phase 4: Security & Production Readiness
-
-### 4.1 Security Enhancements
-- [ ] **SSL/TLS Configuration**
-  - [ ] Re-enable Let's Encrypt certificates
-  - [ ] HTTPS-only access
-  - [ ] Security headers (HSTS, CSP, etc.)
-  - [ ] Certificate rotation automation
-
-- [ ] **Authentication & Authorization**
-  - [ ] API key management
-  - [ ] Rate limiting per user/API key
-  - [ ] Role-based access control
-  - [ ] Audit logging
-
-### 4.2 Monitoring & Observability
-- [ ] **Application Monitoring**
-  - [ ] Prometheus metrics
-  - [ ] Grafana dashboards
-  - [ ] Error tracking (Sentry)
-  - [ ] Performance monitoring
-
-- [ ] **Logging & Alerting**
-  - [ ] Structured logging (JSON format)
-  - [ ] Log aggregation (ELK stack)
-  - [ ] Alert rules for critical issues
-  - [ ] Health check improvements
-
----
-
-## 📈 Phase 5: Performance & Scalability
-
-### 5.1 Performance Optimization
-- [ ] **Caching Strategy**
-  - [ ] Redis for session/result caching
-  - [ ] Model caching for ML inference
-  - [ ] CDN for static assets
-  - [ ] Database query optimization
-
-- [ ] **Scalability Improvements**
-  - [ ] Horizontal pod autoscaling (HPA)
-  - [ ] Resource optimization
-  - [ ] Connection pooling
-  - [ ] Async processing queues
-
-### 5.2 Data Management
-- [ ] **Data Retention Policies**
-  - [ ] Automatic cleanup of processed files
-  - [ ] Configurable retention periods
-  - [ ] GDPR compliance features
-  - [ ] Data anonymization for logs
-
----
-
 ## 🚀 Release Planning
 
 ### v1.1.0 - Stability Release
-- [ ] Complete Phase 1 (CI/CD + Testing)
+- [ ] Complete Theme 1 (CI/CD + Testing)
 - [ ] Basic documentation improvements
 - [ ] Security hardening
 
@@ -237,20 +183,18 @@
 ## 📝 Notes
 
 **Priority Order:**
-1. **Phase 1** - Critical for production stability
-2. **Phase 3** - Core feature requirements  
-3. **Phase 2** - Developer experience
-4. **Phase 4** - Security hardening
-5. **Phase 5** - Scalability (future)
+1. **Theme 3** - Core feature requirements (analyze/anonymize endpoints)
+2. **Theme 1** - Critical for production stability  
+3. **Theme 2** - Developer experience
 
-**Dependencies:**
-- Phases 1 & 2 can run in parallel
-- Phase 3 depends on stable testing (Phase 1)  
-- Phase 4 builds on Phase 1 completion
-- Phase 5 is long-term optimization
+**Current Focus:**
+- **Theme 3** - Implementing `/analyze` and `/anonymize` endpoints
+- These endpoints accept string input instead of file uploads
+- Same functionality as document processing but for text strings
 
 ---
 
 *Last updated: 2025-07-30*
 *Current version: v1.0.8*
 *Status: ✅ Deployed and externally accessible*
+*Next: Working on Theme 3 - String-based endpoints*
