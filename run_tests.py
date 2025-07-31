@@ -410,6 +410,57 @@ class TestRunner:
         else:
             self.log("⚠️ Some tests failed. Please review and fix issues.")
 
+    def auto_tag_dev_if_ready(self):
+        """Auto-tag successful test runs as 'dev' when not on main branch."""
+        if not self.test_results or not all(
+            r.get("success", False) for r in self.test_results.values()
+        ):
+            self.log("⚠️ Not tagging - tests failed", "WARNING")
+            return False
+
+        # Get current branch
+        current_branch = self.get_current_branch()
+        
+        if current_branch == "main":
+            self.log("📝 On main branch - skipping dev tag (use version tags instead)")
+            return True
+            
+        if current_branch == "unknown":
+            self.log("⚠️ Unknown branch - skipping dev tag", "WARNING")
+            return False
+
+        self.log(f"🏷️ All tests passed on branch '{current_branch}' - creating dev tag...")
+        
+        try:
+            # Create dev tag (force update if exists)
+            result = subprocess.run([
+                "git", "tag", "-f", "dev", "-m", 
+                f"Auto-tagged dev from {current_branch} - tests passed"
+            ], capture_output=True, text=True)
+            
+            if result.returncode == 0:
+                self.log("✅ Dev tag created locally")
+                
+                # Push dev tag to remote (force update)
+                push_result = subprocess.run([
+                    "git", "push", "origin", "dev", "--force"
+                ], capture_output=True, text=True)
+                
+                if push_result.returncode == 0:
+                    self.log("🚀 Dev tag pushed to remote - ready for deployment!")
+                    self.log("💡 Deploy with: kubectl set image deployment/openanonymiser openanonymiser=mwest2020/openanonymiser:dev")
+                else:
+                    self.log(f"⚠️ Failed to push dev tag: {push_result.stderr}", "WARNING")
+            else:
+                self.log(f"❌ Failed to create dev tag: {result.stderr}", "ERROR")
+                return False
+                
+        except Exception as e:
+            self.log(f"❌ Error during dev tagging: {e}", "ERROR")
+            return False
+        
+        return True
+
     def create_pr_if_ready(self):
         """Create PR to staging if all tests pass."""
         if not self.test_results or not all(
@@ -450,8 +501,9 @@ class TestRunner:
             # Step 3: Generate report
             all_passed = self.generate_report()
 
-            # Step 4: Create PR if ready
+            # Step 4: Auto-tag as dev if ready (non-main branches)
             if all_passed:
+                self.auto_tag_dev_if_ready()
                 self.create_pr_if_ready()
 
             return all_passed
