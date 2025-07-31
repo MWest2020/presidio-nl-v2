@@ -126,19 +126,64 @@
 ### 3.1 String-based Analysis Endpoints
 - [ ] **POST /api/v1/analyze** 
   - [ ] Accept JSON payload with text string
-  - [ ] Return PII detection results
+  - [ ] Return PII detection results using Presidio framework
   - [ ] Support different analysis engines (spaCy, Transformers)
   - [ ] Configurable confidence thresholds
-  - [ ] Response format: `{"entities": [...], "confidence": 0.95}`
+  - [ ] **Include scores when available** (model-dependent)
+  - [ ] Response format with optional scores:
+  ```json
+  {
+    "pii_entities": [
+      {
+        "entity_type": "PERSON",
+        "text": "Jan de Vries",
+        "score": 0.9999995231628418
+      },
+      {
+        "entity_type": "LOCATION", 
+        "text": "Amsterdam",
+        "score": 0.9999994039535522
+      }
+    ]
+  }
+  ```
 
 - [ ] **POST /api/v1/anonymize**
   - [ ] Accept JSON payload with text string
-  - [ ] Return anonymized text
+  - [ ] Return anonymized text using Presidio framework
   - [ ] Support different anonymization strategies
   - [ ] Preserve original formatting where possible
-  - [ ] Response format: `{"original": "...", "anonymized": "...", "entities": [...]}`
+  - [ ] Response format consistent with Presidio:
+  ```json
+  {
+    "original_text": "Mijn naam is Jan de Vries, mijn BSN is 123456789 en ik woon in Amsterdam.",
+    "anonymized_text": "Mijn naam is [PERSOON], mijn [PERSOON] is 123456789 en ik woon in [LOCATIE].",
+    "entities_found": [
+      {
+        "entity_type": "PERSON",
+        "text": "Jan de Vries",
+        "score": 0.9999995231628418
+      },
+      {
+        "entity_type": "LOCATION",
+        "text": "Amsterdam", 
+        "score": 0.9999994039535522
+      }
+    ]
+  }
+  ```
 
 ### 3.2 Enhanced Features
+- [ ] **Multi-Model Support & Documentation**
+  - [ ] Create `/docs/models/` documentation section
+  - [ ] Document score support per model:
+    - ✅ **TransformersEngine**: Scores available (Hugging Face confidence)
+    - ❌ **SpacyEngine**: No scores (returns empty string)
+    - ✅ **Presidio Pattern Recognizers**: Scores available (confidence)
+  - [ ] Model comparison documentation
+  - [ ] Performance benchmarks per model
+  - [ ] Model selection guidelines
+
 - [ ] **Batch Processing**
   - [ ] POST /api/v1/analyze/batch (multiple texts)
   - [ ] POST /api/v1/anonymize/batch (multiple texts)
@@ -150,13 +195,22 @@
   - [ ] Language-specific processing
   - [ ] Entity type filtering
   - [ ] Output format options (JSON, plain text)
+  - [ ] Model selection per request
 
 ### 3.3 Backwards Compatibility
 - [ ] **Document Endpoints Enhancement**
-  - [ ] Maintain existing document upload/download functionality
+  - [ ] Maintain existing document upload/download functionality (NO scores)
+  - [ ] New endpoints use `entities` list WITH scores when available
+  - [ ] Existing endpoints use `unique` list WITHOUT scores (unchanged)
   - [ ] Add metadata response for processed documents
   - [ ] Link document processing with string analysis results
   - [ ] Consistent response formats across all endpoints
+
+- [ ] **Score Handling Strategy**
+  - [ ] Existing `/documents/upload/`: Keep current format (no scores)
+  - [ ] New `/analyze` & `/anonymize`: Include scores when model supports it
+  - [ ] Document score availability per model in API docs
+  - [ ] Graceful handling when scores not available
 
 ---
 
@@ -191,6 +245,8 @@
 - **Theme 3** - Implementing `/analyze` and `/anonymize` endpoints
 - These endpoints accept string input instead of file uploads
 - Same functionality as document processing but for text strings
+- **Consistent response format** with existing /documents/upload/ endpoint
+- **Using Presidio framework** for PII detection and anonymization
 
 ---
 
