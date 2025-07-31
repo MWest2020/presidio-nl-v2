@@ -1,0 +1,45 @@
+services:
+  presidio-nl:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8001:8080"
+    environment:
+      - UVICORN_SERVER_MODE=development
+      - DEBUG=true
+      - DEFAULT_NLP_ENGINE=spacy
+      - DEFAULT_SPACY_MODEL=nl_core_news_md
+      - DEFAULT_TRANSFORMERS_MODEL=pdelobelle/robbert-v2-dutch-base
+      - CRYPTO_KEY=examplekey
+      - BASIC_AUTH_USERNAME=user
+      - BASIC_AUTH_PASSWORD=user
+    volumes:
+      - presidio-data:/app/
+    networks:
+      - presidio-network
+      
+  ui:
+    build:
+      context: ./src/ui
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=/api
+    restart: unless-stopped
+    ports:
+      - "8002:80"
+    environment:
+      - VITE_API_BASE_URL=/api
+    depends_on:
+      - presidio-nl
+    networks:
+      - presidio-network
+
+volumes:
+  presidio-data:
+    driver: local
+
+networks:
+  presidio-network:
+    driver: bridge 

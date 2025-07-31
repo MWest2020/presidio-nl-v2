@@ -18,6 +18,7 @@ docker run -d -p 8000:8080 --name presidio-nl presidio-nl
 - De API is nu bereikbaar op [http://localhost:8000/docs](http://localhost:8000/docs)
 - De container draait op de achtergrond (`-d`).
 - Poort 8080 in de container wordt gemapt naar poort 8000 op je machine.
+- Er worden `emptyDir` volumes gekoppeld aan `/tmp` en `/app/logs` zodat de container kan schrijven. Dit voorkomt fouten als `os error 30` bij een read-only root filesystem.
 
 ## Stoppen en verwijderen
 
