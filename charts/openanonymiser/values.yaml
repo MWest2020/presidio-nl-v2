@@ -3,7 +3,7 @@ replicaCount: 1
 
 image:
   repository: mwest2020/openanonymiser
-  tag: latest
+  tag: v1.0.8
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
@@ -33,19 +33,22 @@ service:
   port: 8080
 
 ingress:
-  enabled: false
+  enabled: true
   className: nginx
-  annotations: {}
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
   hosts:
     - host: "api.openanonymiser.commonground.nu"
       paths:
         - path: /
           pathType: Prefix
-          backend:
-            service:
-              name: openanonymiser
-              port:
-                number: 8080
   tls: []
 
 resources:
@@ -60,9 +63,14 @@ persistence:
   enabled: true
   storageClass: "nfs"
   size: 25Gi
+  # Critical: This volume stores:
+  # - SQLite database (/app/data/openanonymiser.db)
+  # - Uploaded files (/app/data/temp/source/)
+  # - Processed files (/app/data/temp/anonymized/, /app/data/temp/deanonymized/)
+  # - Application logs (/app/data/logs/)
 
 networkPolicy:
-  enabled: true
+  enabled: false
   allowedNamespaces:
     - presidio
     - default
@@ -88,10 +96,13 @@ app:
     internalOnly: false
   storage:
     cleanupInterval: 3600
-
-volumeMounts:
-  - name: logs-volume
-    mountPath: /app/logs
-volumes:
-  - name: logs-volume
-    emptyDir: {} 
+  # Environment variables from docker-compose
+  env:
+    uvicornServerMode: "production"
+    defaultNlpEngine: "spacy"
+    defaultSpacyModel: "nl_core_news_md"
+    defaultTransformersModel: "pdelobelle/robbert-v2-dutch-base"
+    cryptoKey: "your-secret-crypto-key"
+  auth:
+    username: "admin"
+    password: "admin" 

@@ -17,9 +17,9 @@ spec:
             pathType: {{ .pathType }}
             backend:
               service:
-                name: {{ .backend.service.name }}
+                name: {{ include "openanonymiser.fullname" $ }}
                 port:
-                  number: {{ .backend.service.port.number }}
+                  number: {{ $.Values.service.port }}
           {{- end }}
     {{- end }}
   tls:

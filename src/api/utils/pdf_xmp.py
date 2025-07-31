@@ -125,7 +125,9 @@ async def create_temp_paths_and_save(file: UploadFile) -> Tuple[Path, Path]:
     content = await file.read()
     await file.close()
 
-    temp_dir = Path("temp/deanonymized")
+    from src.api.config import settings
+
+    temp_dir = Path(settings.DATA_DIR) / "temp/deanonymized"
     temp_dir.mkdir(parents=True, exist_ok=True)
 
     process_id = uuid.uuid4().hex
@@ -157,7 +159,9 @@ async def upload_and_analyze_files(
         await file.close()
 
         file_id = uuid.uuid4().hex
-        source_dir = Path("temp/source")
+        from src.api.config import settings
+
+        source_dir = Path(settings.DATA_DIR) / "temp/source"
         source_dir.mkdir(parents=True, exist_ok=True)
         source_path = source_dir / f"{file_id}.pdf"
         with open(source_path, "wb") as f:
@@ -256,7 +260,9 @@ def analyze_and_anonymize_document(
 
     mapping = {e["text"]: e["entity_type"].lower() for e in selected}
 
-    anonym_dir = Path("temp/anonymized")
+    from src.api.config import settings
+
+    anonym_dir = Path(settings.DATA_DIR) / "temp/anonymized"
     anonym_dir.mkdir(parents=True, exist_ok=True)
     out_path = anonym_dir / f"{file_id}.pdf"
 
