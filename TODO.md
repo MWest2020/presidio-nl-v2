@@ -184,6 +184,15 @@
   - [ ] Performance benchmarks per model
   - [ ] Model selection guidelines
 
+- [ ] **Presidio-Research Integration**
+  - [ ] Research presidio-research capabilities for benchmarking
+  - [ ] Implement automated model evaluation and benchmarking
+  - [ ] Set up performance comparison pipelines
+  - [ ] Create evaluation datasets for Dutch PII detection
+  - [ ] Generate model accuracy reports and metrics
+  - [ ] Integrate benchmarking results into documentation
+  - [ ] Automated model selection based on performance metrics
+
 - [ ] **Batch Processing**
   - [ ] POST /api/v1/analyze/batch (multiple texts)
   - [ ] POST /api/v1/anonymize/batch (multiple texts)
