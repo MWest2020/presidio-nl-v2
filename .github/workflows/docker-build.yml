@@ -2,7 +2,7 @@ name: Build and Push Docker Images
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, staging, development ]
     tags: [ 'v*.*.*' ]
   pull_request:
     branches: [ main ]
@@ -32,8 +32,12 @@ jobs:
             # Main branch - use latest git tag
             VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.2.0")
             TAGS="${{ env.IMAGE_NAME }}:${VERSION},${{ env.IMAGE_NAME }}:latest"
+          elif [[ $GITHUB_REF == refs/heads/staging ]] || [[ $GITHUB_REF == refs/heads/development ]]; then
+            # Staging/development branches - dev tag
+            VERSION="dev"
+            TAGS="${{ env.IMAGE_NAME }}:dev"
           else
-            # PR or other branch - dev tag only
+            # PR or other branch - dev tag with commit hash
             VERSION="dev-${GITHUB_SHA::7}"
             TAGS="${{ env.IMAGE_NAME }}:dev"
           fi
