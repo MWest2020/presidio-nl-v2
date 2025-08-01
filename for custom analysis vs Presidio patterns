@@ -1,5 +1,0 @@
-[33mb194ca5[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m)[m fix: Separate NLP engines for custom analysis vs Presidio patterns
-[33m7aef505[m feat: Pre-download transformers model in Docker build
-[33m14bbd43[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m feat: Multi-environment setup with staging/development branches
-[33mfe6dbf7[m[33m ([m[1;31morigin/feature/string-endpoints[m[33m, [m[1;31morigin/development[m[33m, [m[1;32mfeature/string-endpoints[m[33m, [m[1;32mdevelopment[m[33m)[m fix: Simplify GitOps workflow - no staging/development branches needed
-[33mfd48178[m feat: Add comprehensive GitHub Actions workflows for automated deployments
