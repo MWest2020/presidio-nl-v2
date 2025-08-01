@@ -3,8 +3,8 @@ replicaCount: 1
 
 image:
   repository: mwest2020/openanonymiser
-  tag: v1.1.0
-  pullPolicy: IfNotPresent
+  tag: dev
+  pullPolicy: Always
 
 imagePullSecrets: []
 
