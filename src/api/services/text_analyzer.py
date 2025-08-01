@@ -44,12 +44,13 @@ class ModularTextAnalyzer:
             config_dict={"nlp_engine": nlp_engine, "model_name": model_name}
         )
 
+        # Presidio always uses SpaCy for pattern recognizers, regardless of our NLP engine choice
         spacy_config = {
-            "nlp_engine_name": nlp_engine,
+            "nlp_engine_name": "spacy",  # Presidio only supports spacy
             "models": [
                 {
                     "lang_code": settings.DEFAULT_LANGUAGE,
-                    "model_name": model_name,
+                    "model_name": settings.DEFAULT_SPACY_MODEL,  # Always use SpaCy model for Presidio
                 }
             ],
         }
