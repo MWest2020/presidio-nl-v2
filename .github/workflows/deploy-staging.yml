@@ -1,13 +1,14 @@
-name: Deploy to Staging
+name: Deploy Feature to Staging
 
 on:
-  pull_request:
-    branches: [ staging, development ]
-    types: [ opened, synchronize, reopened ]
-  push:
-    branches: [ staging, development ]
+  # Deploy any feature branch to staging on demand
   workflow_dispatch:
     inputs:
+      branch:
+        description: 'Branch to deploy to staging'
+        required: true
+        default: 'feature/string-endpoints'
+        type: string
       environment:
         description: 'Deployment environment'
         required: true
@@ -28,6 +29,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -70,6 +73,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -83,20 +88,19 @@ jobs:
       - name: Generate tags
         id: meta
         run: |
-          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          # Use input branch if provided, otherwise use current ref
+          BRANCH_NAME="${{ github.event.inputs.branch }}"
+          if [ -z "$BRANCH_NAME" ]; then
+            BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          fi
+          
           TIMESTAMP=$(date +%Y%m%d-%H%M%S)
           SHORT_SHA=${GITHUB_SHA:0:7}
           
-          if [ "$BRANCH_NAME" = "staging" ]; then
-            MAIN_TAG="staging-${TIMESTAMP}-${SHORT_SHA}"
-            ALIAS_TAG="dev"
-          elif [ "$BRANCH_NAME" = "development" ]; then
-            MAIN_TAG="development-${TIMESTAMP}-${SHORT_SHA}"
-            ALIAS_TAG="dev"
-          else
-            MAIN_TAG="feature-${BRANCH_NAME//\//-}-${SHORT_SHA}"
-            ALIAS_TAG="feature-latest"
-          fi
+          # All feature branches get staging treatment
+          CLEAN_BRANCH_NAME=$(echo "$BRANCH_NAME" | sed 's/feature\///g' | sed 's/[^a-zA-Z0-9]/-/g')
+          MAIN_TAG="staging-${CLEAN_BRANCH_NAME}-${TIMESTAMP}-${SHORT_SHA}" 
+          ALIAS_TAG="dev"
           
           echo "main_tag=${MAIN_TAG}" >> $GITHUB_OUTPUT
           echo "alias_tag=${ALIAS_TAG}" >> $GITHUB_OUTPUT
@@ -125,14 +129,14 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add charts/openanonymiser/values.yaml
-          git commit -m "deploy: Auto-update image tag to ${MAIN_TAG} for ${BRANCH}" || exit 0
-          git push origin ${BRANCH}
+          git commit -m "deploy: Auto-update image tag to ${MAIN_TAG} for ${BRANCH_NAME}" || exit 0
+          git push origin "${BRANCH_NAME}"
 
       - name: Create deployment summary
         run: |
           echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Environment:** ${{ steps.meta.outputs.branch }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ steps.meta.outputs.branch }}" >> $GITHUB_STEP_SUMMARY
           echo "**Image:** ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.main_tag }}" >> $GITHUB_STEP_SUMMARY
           echo "**Alias:** ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.alias_tag }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -157,6 +161,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
 
       - name: Set up Python
         uses: actions/setup-python@v4
