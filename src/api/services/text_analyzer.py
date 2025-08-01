@@ -97,7 +97,7 @@ class ModularTextAnalyzer:
             list: lijst van gedetecteerde entiteiten met hun start- en eindposities, type en score.
         """
         logging.debug(f"Analyzing text with {entities=} and {language=}")
-        
+
         # Analyze with NLP engine (supports entity filtering)
         nlp_results = self.nlp_engine.analyze(text, entities, language)
         print(f"nlp_results: {nlp_results}")
@@ -105,7 +105,9 @@ class ModularTextAnalyzer:
         # Use pattern recognizers via Presidio AnalyzerEngine (detect ALL patterns first)
         try:
             pattern_results: List[RecognizerResult] = self.analyzer.analyze(
-                text=text, entities=None, language=language  # Don't filter here
+                text=text,
+                entities=None,
+                language=language,  # Don't filter here
             )
             print(f"pattern_results: {pattern_results}")
         except Exception as e:
@@ -123,14 +125,14 @@ class ModularTextAnalyzer:
             }
             for r in pattern_results
         ]
-        
+
         # Combine all results
         all_results = nlp_results + pattern_dicts
-        
+
         # Filter by requested entities if specified
         if entities and entities != settings.DEFAULT_ENTITIES:
             all_results = [r for r in all_results if r["entity_type"] in entities]
-        
+
         # Deduplication based on start, end, entity_type
         seen = set()
         unique_results = []
