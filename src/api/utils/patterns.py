@@ -26,9 +26,10 @@ class DutchPhoneNumberRecognizer(PatternRecognizer):
 
 
 class DutchIBANRecognizer(PatternRecognizer):
-    """Herkenner voor Nederlandse IBAN bankrekeningnummers.
+    """Herkenner voor IBAN bankrekeningnummers.
 
-    Herkent alleen IBANs die beginnen met 'NL'.
+    Ondersteunt Nederlandse IBANs (beginnend met 'NL') en internationale IBANs,
+    in zowel aaneengesloten als gespatieerde vormen.
     """
 
     def __init__(
@@ -36,7 +37,21 @@ class DutchIBANRecognizer(PatternRecognizer):
         context: Optional[List[str]] = None,
         supported_language: str = "nl",
     ) -> None:
-        patterns = [Pattern("DUTCH_IBAN", r"\bNL\d{2}[A-Z]{4}\d{10}\b", 0.6)]
+        patterns = [
+            # Specifiek NL-patroon met of zonder spaties
+            Pattern(
+                "DUTCH_IBAN",
+                r"\bNL\d{2}\s?[A-Z]{4}(?:\s?\d{10}|\s?\d{4}\s?\d{4}\s?\d{2})\b",
+                0.6,
+            ),
+            # Algemeen internationaal IBAN-patroon (min 15, max 34 tekens), met optionele spaties
+            # Landcode (2 letters) + controlegetal (2 cijfers) + BBAN (alfa-numeriek)
+            Pattern(
+                "INTL_IBAN",
+                r"\b[A-Z]{2}\d{2}(?:\s?[A-Z0-9]{4}){2,7}(?:\s?[A-Z0-9]{1,4})?\b",
+                0.55,
+            ),
+        ]
         super().__init__(
             supported_entity="IBAN",
             patterns=patterns,
@@ -45,7 +60,7 @@ class DutchIBANRecognizer(PatternRecognizer):
         )
 
 
-class DutchEmailRecognizer(PatternRecognizer):
+class EmailRecognizer(PatternRecognizer):
     """Herkenner voor e-mailadressen volgens het standaard e-mailpatroon."""
 
     def __init__(
@@ -70,9 +85,13 @@ class DutchEmailRecognizer(PatternRecognizer):
 
 class DutchBSNRecognizer(PatternRecognizer):
     def __init__(self, context: Optional[List[str]] = None) -> None:
-        pattern = Pattern("NL_BSN", r"\b\d{3}[- ]?\d{2}[- ]?\d{3}\b", 0.6)
+        pattern = Pattern(
+            "NL_BSN",
+            r"\b(?:\d{9}|\d{3}[- ]?\d{3}[- ]?\d{3})\b",
+            0.6,
+        )
         super().__init__(
-            supported_entity="NATIONAL_ID",
+            supported_entity="BSN",
             patterns=[pattern],
             context=context,  # type: ignore[arg-type]
             supported_language="nl",
@@ -164,6 +183,50 @@ class IPv4Recognizer(PatternRecognizer):
         super().__init__(
             "IP_ADDRESS",
             patterns=[pattern],
+            context=context,  # type: ignore[arg-type]
+            supported_language=supported_language,
+        )
+
+
+class DutchDateRecognizer(PatternRecognizer):
+    def __init__(
+        self, context: Optional[List[str]] = None, supported_language: str = "nl"
+    ) -> None:
+        patterns = [
+            # dd-mm-yyyy, dd/mm/yyyy, dd.mm.yyyy
+            Pattern(
+                "DATE_DD_MM_YYYY",
+                r"\b(?:0?[1-9]|[12][0-9]|3[01])[\-/.](?:0?[1-9]|1[0-2])[\-/.](?:19|20)\d{2}\b",
+                0.5,
+            ),
+            # mm-dd-yyyy, mm/dd/yyyy, mm.dd.yyyy
+            Pattern(
+                "DATE_MM_DD_YYYY",
+                r"\b(?:0?[1-9]|1[0-2])[\-/.](?:0?[1-9]|[12][0-9]|3[01])[\-/.](?:19|20)\d{2}\b",
+                0.5,
+            ),
+            # yyyy-mm-dd
+            Pattern(
+                "DATE_YYYY_MM_DD",
+                r"\b(?:19|20)\d{2}[\-/.](?:0?[1-9]|1[0-2])[\-/.](?:0?[1-9]|[12][0-9]|3[01])\b",
+                0.5,
+            ),
+            # dd mm yy (space-separated, 2-digit year)
+            Pattern(
+                "DATE_DD_MM_YY",
+                r"\b(?:0?[1-9]|[12][0-9]|3[01])[\s/.-](?:0?[1-9]|1[0-2])[\s/.-]\d{2}\b",
+                0.45,
+            ),
+            # 1 september 2020 (spelled-out months in Dutch, case-insensitive)
+            Pattern(
+                "DATE_DD_MONTH_YYYY",
+                r"(?i)\b(?:0?[1-9]|[12][0-9]|3[01])\s+(?:januari|februari|maart|april|mei|juni|juli|augustus|september|oktober|november|december)\s+(?:19|20)\d{2}\b",
+                0.5,
+            ),
+        ]
+        super().__init__(
+            supported_entity="DATE_TIME",
+            patterns=patterns,
             context=context,  # type: ignore[arg-type]
             supported_language=supported_language,
         )

@@ -7,8 +7,10 @@ from presidio_analyzer.nlp_engine import NlpEngineProvider
 from src.api.config import settings
 from src.api.utils.nlp.loader import load_nlp_engine
 from src.api.utils.patterns import (
-    DutchEmailRecognizer,
+    EmailRecognizer,
     DutchIBANRecognizer,
+    DutchBSNRecognizer,
+    DutchDateRecognizer,
     DutchPhoneNumberRecognizer,
 )
 
@@ -65,7 +67,9 @@ class ModularTextAnalyzer:
         recognizers_to_add = [
             DutchPhoneNumberRecognizer(),
             DutchIBANRecognizer(),
-            DutchEmailRecognizer(),
+            DutchBSNRecognizer(),
+            DutchDateRecognizer(),
+            EmailRecognizer(),
         ]
         for recognizer in recognizers_to_add:
             registry.add_recognizer(recognizer=recognizer)
