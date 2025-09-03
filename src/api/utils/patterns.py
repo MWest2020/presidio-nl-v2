@@ -101,6 +101,17 @@ class DutchBSNRecognizer(PatternRecognizer):
         digits = [int(d) for d in bsn if d.isdigit()]
         return sum((9 - i) * d for i, d in enumerate(digits)) % 11 == 0
 
+class DutchPostcodeRecognizer(PatternRecognizer):
+    def __init__(
+        self, context: Optional[List[str]] = None, supported_language: str = "nl"
+    ) -> None:
+        pattern = Pattern("NL_POSTCODE", r"\b\d{4}\s?[A-Z]{2}\b", 0.55)
+        super().__init__(
+            "POSTCODE",
+            patterns=[pattern],
+            context=context,  # type: ignore[arg-type]
+            supported_language=supported_language,
+        )
 
 
 # BTW-/VAT-nummer (NL999999999B99 – nieuw formaat)
