@@ -12,6 +12,9 @@ from src.api.utils.patterns import (
     DutchBSNRecognizer,
     DutchDateRecognizer,
     DutchPhoneNumberRecognizer,
+    DutchPassportIdRecognizer,
+    DutchDriversLicenseRecognizer,
+    CaseNumberRecognizer,
 )
 
 
@@ -70,6 +73,9 @@ class ModularTextAnalyzer:
             DutchBSNRecognizer(),
             DutchDateRecognizer(),
             EmailRecognizer(),
+            DutchPassportIdRecognizer(),
+            DutchDriversLicenseRecognizer(),
+            CaseNumberRecognizer(),
         ]
         for recognizer in recognizers_to_add:
             registry.add_recognizer(recognizer=recognizer)
