@@ -6,15 +6,15 @@ interface LayoutProps {
 
 export function Layout({ children }: LayoutProps) {
   return (
-    <div className="min-h-screen w-full bg-gray-50">
+    <div className="min-h-screen w-full flex flex-col bg-gray-50">
       <Header />
-  <main className="w-full mx-auto py-6 px-4 sm:py-8 sm:px-6 lg:py-10 lg:px-12">
-        <div className="space-y-10">
+      <main className="flex-1 w-full min-w-0">
+        <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 py-6 sm:py-8 lg:py-10 space-y-12">
           {children}
         </div>
       </main>
-      <footer className="mt-auto w-full border-t bg-white/60 backdrop-blur supports-[backdrop-filter]:bg-white/40">
-        <div className="mx-auto px-4 lg:px-12 py-6 text-xs sm:text-sm text-gray-500 flex flex-col sm:flex-row gap-2 sm:items-center justify-between">
+      <footer className="w-full border-t bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/50">
+        <div className="px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 py-6 text-xs sm:text-sm text-gray-500 flex flex-col sm:flex-row gap-2 sm:items-center justify-between">
           <span>&copy; {new Date().getFullYear()} OpenAnonymiser</span>
           <span className="hidden sm:inline">Secure document anonymization &amp; deanonymization</span>
         </div>
