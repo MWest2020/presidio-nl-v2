@@ -5,8 +5,10 @@ export const api = {
   // Upload a document with optional tags
   async uploadDocument(file: File, tags?: string[]) {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('files', file);
     if (tags && tags.length > 0) {
+      // Send tags as individual form fields or as JSON string
+      // FastAPI should handle JSON string for list[str] parameter
       formData.append('tags', JSON.stringify(tags));
     }
     
@@ -19,7 +21,8 @@ export const api = {
       throw new Error('Failed to upload document');
     }
     
-    return response.json();
+    const result = await response.json();
+    return result.files; // Extract the files array from the response
   },
 
   // Get document metadata and PII entities
