@@ -69,8 +69,11 @@ def client(db_session):
 def temp_dirs():
     """Create and clean up temporary directories for file operations."""
     # Create temporary directories for test files
-    source_dir = Path("temp/source")
-    anonym_dir = Path("temp/anonymized")
+    from src.api.config import settings
+
+    base_dir = Path(settings.DATA_DIR)
+    source_dir = base_dir / "temp/source"
+    anonym_dir = base_dir / "temp/anonymized"
 
     source_dir.mkdir(parents=True, exist_ok=True)
     anonym_dir.mkdir(parents=True, exist_ok=True)

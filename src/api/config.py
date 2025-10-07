@@ -21,6 +21,7 @@ class Settings:
         "EMAIL",
         "ORGANIZATION",
         "IBAN",
+        "DATE_TIME",
         "ADDRESS",
     ]
 
@@ -41,6 +42,7 @@ class Settings:
         "EMAIL",
         "ORGANIZATION",
         "IBAN",
+        "DATE_TIME",
         "ADDRESS",
     ]
     key = os.getenv("CRYPTO_KEY")
@@ -51,8 +53,11 @@ class Settings:
             "CRYPTO_KEY is not set. Using default value. This is not secure for production!"
         )
         CRYPTO_KEY = b"secret"
-    DATABASE_URL = "sqlite:///./openanonymiser.db"
+    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./data/openanonymiser.db")
     KEEP_TEMP_FILES = os.getenv("KEEP_TEMP_FILES", "false").lower() == "true"
+
+    # Base directory for data files (used by temp directories)
+    DATA_DIR = os.getenv("DATA_DIR", "data")
 
     BASIC_AUTH_USERNAME = os.getenv("BASIC_AUTH_USERNAME", "admin")
     BASIC_AUTH_PASSWORD = os.getenv("BASIC_AUTH_PASSWORD", "password")
@@ -68,6 +73,8 @@ def setup_logging() -> None:
     afhankelijk van de configuratie. Logt naar 'app.log' en de console.
     """
     console_log_level = "DEBUG" if settings.DEBUG else "INFO"
+    log_dir = os.getenv("LOG_DIR", "logs")
+    os.makedirs(log_dir, exist_ok=True)
     logging.config.dictConfig(
         {
             "version": 1,
@@ -82,7 +89,7 @@ def setup_logging() -> None:
                     "class": "logging.FileHandler",
                     "formatter": "default",
                     "level": "DEBUG",
-                    "filename": "app.log",
+                    "filename": os.path.join(log_dir, "app.log"),
                 },
                 "stream": {
                     "class": "logging.StreamHandler",

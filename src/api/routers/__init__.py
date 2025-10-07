@@ -3,6 +3,7 @@ import logging
 from fastapi.routing import APIRouter
 
 from src.api.routers.documents import documents_router
+from src.api.routers.text_analysis import text_analysis_router
 
 router = APIRouter(prefix="/api/v1")
 
@@ -18,6 +19,9 @@ def ping() -> dict[str, str]:
 
 router.include_router(documents_router)
 logging.info("Documents API router included!")
+
+router.include_router(text_analysis_router)
+logging.info("Text Analysis API router included!")
 
 
 __all__ = ["router"]
