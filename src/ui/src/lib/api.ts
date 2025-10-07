@@ -47,7 +47,7 @@ export const api = {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ selected_entities: selectedEntities }),
+      body: JSON.stringify({ pii_entities_to_anonymize: selectedEntities }),
     });
     
     if (!response.ok) {

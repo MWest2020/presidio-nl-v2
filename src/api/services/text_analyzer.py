@@ -7,14 +7,14 @@ from presidio_analyzer.nlp_engine import NlpEngineProvider
 from src.api.config import settings
 from src.api.utils.nlp.loader import load_nlp_engine
 from src.api.utils.patterns import (
-    EmailRecognizer,
-    DutchIBANRecognizer,
+    CaseNumberRecognizer,
     DutchBSNRecognizer,
     DutchDateRecognizer,
-    DutchPhoneNumberRecognizer,
-    DutchPassportIdRecognizer,
     DutchDriversLicenseRecognizer,
-    CaseNumberRecognizer,
+    DutchIBANRecognizer,
+    DutchPassportIdRecognizer,
+    DutchPhoneNumberRecognizer,
+    EmailRecognizer,
 )
 
 
