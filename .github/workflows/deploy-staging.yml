@@ -1,0 +1,210 @@
+name: Deploy Feature to Staging
+
+on:
+  # Deploy any feature branch to staging on demand
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy to staging'
+        required: true
+        default: 'feature/string-endpoints'
+        type: string
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - development
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: mwest2020/openanonymiser
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync --no-dev
+
+      - name: Start API for testing
+        run: |
+          uv run api.py &
+          API_PID=$!
+          echo "API_PID=$API_PID" >> $GITHUB_ENV
+          sleep 10  # Wait for API to start
+
+      - name: Run standalone tests
+        run: |
+          python test_endpoints.py
+        continue-on-error: false
+
+      - name: Stop API
+        if: always()
+        run: |
+          if [ ! -z "$API_PID" ]; then
+            kill $API_PID || true
+          fi
+
+  build-and-deploy:
+    name: Build and Deploy
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Generate tags
+        id: meta
+        run: |
+          # Use input branch if provided, otherwise use current ref
+          BRANCH_NAME="${{ github.event.inputs.branch }}"
+          if [ -z "$BRANCH_NAME" ]; then
+            BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          fi
+          
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          SHORT_SHA=${GITHUB_SHA:0:7}
+          
+          # All feature branches get staging treatment
+          CLEAN_BRANCH_NAME=$(echo "$BRANCH_NAME" | sed 's/feature\///g' | sed 's/[^a-zA-Z0-9]/-/g')
+          MAIN_TAG="staging-${CLEAN_BRANCH_NAME}-${TIMESTAMP}-${SHORT_SHA}" 
+          ALIAS_TAG="dev"
+          
+          echo "main_tag=${MAIN_TAG}" >> $GITHUB_OUTPUT
+          echo "alias_tag=${ALIAS_TAG}" >> $GITHUB_OUTPUT
+          echo "branch=${BRANCH_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.main_tag }}
+            ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.alias_tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Update Helm values
+        run: |
+          MAIN_TAG="${{ steps.meta.outputs.main_tag }}"
+          BRANCH="${{ steps.meta.outputs.branch }}"
+          
+          # Update image tag in values.yaml
+          sed -i "s/tag: .*/tag: ${MAIN_TAG}/" charts/openanonymiser/values.yaml
+          
+          # Commit and push the changes
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add charts/openanonymiser/values.yaml
+          git commit -m "deploy: Auto-update image tag to ${MAIN_TAG} for ${BRANCH_NAME}" || exit 0
+          git push origin "${BRANCH_NAME}"
+
+      - name: Create deployment summary
+        run: |
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ steps.meta.outputs.branch }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.main_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Alias:** ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.alias_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🧪 Test Cloud API:" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "python test_endpoints.py https://api.openanonymiser.commonground.nu" >> $GITHUB_STEP_SUMMARY
+          echo "./test_endpoints.sh https://api.openanonymiser.commonground.nu" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 New Endpoints:" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **POST /api/v1/analyze** - PII detection with scores/positions" >> $GITHUB_STEP_SUMMARY  
+          echo "- ✅ **POST /api/v1/anonymize** - Text anonymization with strategies" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "ArgoCD will automatically sync within 3 minutes ⏰" >> $GITHUB_STEP_SUMMARY
+
+  test-deployment:
+    name: Test Cloud Deployment
+    needs: build-and-deploy
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install requests
+        run: pip install requests
+
+      - name: Wait for deployment
+        run: |
+          echo "⏳ Waiting for ArgoCD sync and pod restart..."
+          sleep 180  # Wait 3 minutes for ArgoCD sync + pod restart
+
+      - name: Test cloud API endpoints
+        run: |
+          echo "🧪 Testing cloud API endpoints..."
+          python test_endpoints.py https://api.openanonymiser.commonground.nu || {
+            echo "❌ Cloud API tests failed - deployment may still be in progress"
+            echo "💡 Try testing manually in 5-10 minutes"
+            exit 1
+          }
+
+      - name: Create test report
+        if: always()
+        run: |
+          echo "## 🧪 Cloud API Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ $? -eq 0 ]; then
+            echo "✅ **All cloud API tests PASSED!**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "🎉 **Ready for production deployment!**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ **Cloud API tests failed**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Possible causes:**" >> $GITHUB_STEP_SUMMARY
+            echo "- ArgoCD sync still in progress" >> $GITHUB_STEP_SUMMARY
+            echo "- Pod still restarting" >> $GITHUB_STEP_SUMMARY
+            echo "- Network/DNS issues" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Manual test in 5-10 minutes:**" >> $GITHUB_STEP_SUMMARY
+            echo '```bash' >> $GITHUB_STEP_SUMMARY
+            echo "python test_endpoints.py https://api.openanonymiser.commonground.nu" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi

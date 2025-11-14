@@ -29,6 +29,12 @@ body {
   min-height: 100vh;
 }
 
+#root {
+  flex: 1;
+  width: 100%;
+  min-width: 0; /* Prevent flex item from overflowing */
+}
+
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
