@@ -23,6 +23,15 @@ spec:
                   number: {{ $.Values.service.port }}
           {{- end }}
     {{- end }}
+  {{- /* Render TLS only when we have entries with a secretName to satisfy v1 schema */ -}}
+  {{- $validTls := list -}}
+  {{- range .Values.ingress.tls }}
+  {{- if .secretName }}
+  {{- $validTls = append $validTls . }}
+  {{- end }}
+  {{- end }}
+  {{- if (gt (len $validTls) 0) }}
   tls:
-    {{- toYaml .Values.ingress.tls | nindent 4 }}
+    {{- toYaml $validTls | nindent 4 }}
+  {{- end }}
 {{- end }} 
