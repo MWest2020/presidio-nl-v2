@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from sqlalchemy import ForeignKey, String, Text, func
+from sqlalchemy import ForeignKey, String, Text, JSON, func
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -25,6 +25,9 @@ class Document(Base):
     uploaded_at: Mapped[datetime] = mapped_column(server_default=func.now())
     source_path: Mapped[str] = mapped_column(Text, nullable=False)
     anonymized_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    pii_entities: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True
+    )  # Store as JSON string
 
     # Relationships
     tags: Mapped[List["Tag"]] = relationship(
@@ -34,7 +37,7 @@ class Document(Base):
         back_populates="document", cascade="all, delete-orphan"
     )
 
-    # Store entities as JSON in memory (not in database)
+    # Store entities as JSON in memory (not in database) - DEPRECATED: use pii_entities field instead
     _entities: Optional[List[Dict[str, str]]] = None
 
 

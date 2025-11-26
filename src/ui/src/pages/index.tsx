@@ -44,35 +44,54 @@ export default function HomePage() {
 
   return (
     <Layout>
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold mb-4">Document Management</h2>
-        <p className="text-gray-600 mb-4">
-          Upload documents for anonymization or deanonymize previously processed documents.
-        </p>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-          <DocumentUpload onUploadSuccess={handleUploadSuccess} />
-          
-          <div className="w-full">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-2">
-              <h3 className="text-xl font-semibold">Deanonymize</h3>
-              <Link to="/deanonymize" className="w-full sm:w-auto">
-                <Button variant="outline" className="w-full sm:w-auto">Deanonymize Document</Button>
+      <section className="space-y-8">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight mb-3">Document Management</h2>
+          <p className="text-gray-600 leading-relaxed text-base xl:text-lg max-w-4xl">
+            Upload documents for anonymization or deanonymize previously processed documents.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start">
+          <div className="order-2 lg:order-1">
+            <div className="rounded-lg border bg-white shadow-sm h-full p-4 sm:p-6 flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold">Deanonymize</h3>
+                <Link to="/deanonymize" className="hidden sm:block">
+                  <Button variant="outline">Deanonymize</Button>
+                </Link>
+              </div>
+              <p className="text-gray-600 text-sm sm:text-base mb-4">
+                Upload a previously anonymized document to restore the original content.
+              </p>
+              <Link to="/deanonymize" className="sm:hidden mt-auto">
+                <Button variant="outline" className="w-full">Deanonymize Document</Button>
               </Link>
             </div>
-            <p className="text-gray-600">
-              Upload a previously anonymized document to restore the original content.
-            </p>
+          </div>
+          <div className="order-1 lg:order-2">
+            <DocumentUpload onUploadSuccess={handleUploadSuccess} />
           </div>
         </div>
-      </div>
-      
-      <div className="mt-6 sm:mt-8">
-        <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Your Documents</h2>
+      </section>
+
+      <section className="pt-4">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold tracking-tight">Your Documents</h2>
+          {documents.length > 0 && (
+            <span className="text-xs sm:text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+              {documents.length} uploaded
+            </span>
+          )}
+        </div>
+        
         {documents.length === 0 ? (
-          <p className="text-gray-500">No documents uploaded yet. Use the form above to upload your first document.</p>
+          <div className="rounded-md border border-dashed bg-white p-12 text-center text-gray-500 text-sm">
+            <p className="mb-2">No documents uploaded yet</p>
+            <p className="text-xs text-gray-400">Use the upload form above to get started</p>
+          </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+          <div className="grid gap-4 lg:gap-5" style={{gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))'}}>
             {documents.map(doc => (
               <DocumentCard 
                 key={doc.id}
@@ -83,7 +102,7 @@ export default function HomePage() {
             ))}
           </div>
         )}
-      </div>
+      </section>
     </Layout>
   );
 }
