@@ -3,8 +3,8 @@ replicaCount: 1
 
 image:
   repository: mwest2020/openanonymiser
-  tag: dev
-  pullPolicy: Always
+  tag: main
+  pullPolicy: IfNotPresent
 
 imagePullSecrets: []
 
@@ -18,7 +18,9 @@ serviceAccount:
 
 podAnnotations: {}
 
-podSecurityContext: {}
+podSecurityContext:
+  fsGroup: 1000
+  fsGroupChangePolicy: "OnRootMismatch"
 
 securityContext:
   capabilities:
@@ -46,14 +48,14 @@ ingress:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
   hosts:
-    - host: "api.openanonymiser.accept.commonground.nu"
+    - host: "api.openanonymiser.commonground.nu"
       paths:
         - path: /
           pathType: Prefix
   tls:
-    - secretName: openanonymiser-accept-tls
+    - secretName: openanonymiser-tls
       hosts:
-        - api.openanonymiser.accept.commonground.nu
+        - api.openanonymiser.commonground.nu
 
 resources:
   limits:
