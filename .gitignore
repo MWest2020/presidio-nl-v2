@@ -87,4 +87,4 @@ Thumbs.db
 # Deployment configurations with sensitive info
 *-prod.yaml
 *-accept.yaml
-*cluster*.yaml 
+*cluster*.yaml \ntest_results.json\n
