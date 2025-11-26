@@ -12,9 +12,10 @@ spec:
     - host: {{ .host }}
       http:
         paths:
-          {{- range .paths }}
-          - path: {{ .path }}
-            pathType: {{ .pathType }}
+          {{- $defaultPaths := list (dict "path" "/" "pathType" "Prefix") }}
+          {{- range (default $defaultPaths .paths) }}
+          - path: {{ .path | default "/" }}
+            pathType: {{ .pathType | default "Prefix" }}
             backend:
               service:
                 name: {{ include "openanonymiser.fullname" $ }}
