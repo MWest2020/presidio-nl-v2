@@ -1,4 +1,4 @@
-FROM python:3.12.11-slim-bookworm
+FROM python:3.12.11-bookworm
 
 # use the latest version of uv from the official repository
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
@@ -22,23 +22,28 @@ ENV UV_NO_CACHE=1
 # resolve from uv.lock only, no dev dependencies
 RUN uv sync --frozen --no-dev --no-cache
 
+# Pre-download transformers models during build to avoid runtime download
+ENV TRANSFORMERS_CACHE=/home/presidio/.cache/transformers
+ENV HF_HOME=/home/presidio/.cache/huggingface
+
+# Create cache directories first in a separate layer
+RUN mkdir -p /home/presidio/.cache/transformers /home/presidio/.cache/huggingface && \
+    chown -R presidio:presidio /home/presidio/.cache
+
+# Download the Dutch RoBERTa model in a separate layer
+# Adding a specific model version helps with caching
+RUN MODEL_NAME="pdelobelle/robbert-v2-dutch-base" && \
+    echo "Downloading ${MODEL_NAME}..." && \
+    .venv/bin/python -c "from transformers import AutoTokenizer, AutoModelForTokenClassification; \
+    tokenizer = AutoTokenizer.from_pretrained('${MODEL_NAME}', cache_dir='${TRANSFORMERS_CACHE}'); \
+    model = AutoModelForTokenClassification.from_pretrained('${MODEL_NAME}', cache_dir='${TRANSFORMERS_CACHE}'); \
+    print('Model downloaded successfully!')"
+
+
 COPY --chown=presidio:presidio src/api ./src/api
 COPY --chown=presidio:presidio api.py ./
 COPY --chown=presidio:presidio scripts/healthcheck.py ./scripts/
 
-# Pre-download transformers models during build to avoid runtime download
-ENV TRANSFORMERS_CACHE=/home/presidio/.cache/transformers
-ENV HF_HOME=/home/presidio/.cache/huggingface
-RUN mkdir -p /home/presidio/.cache/transformers /home/presidio/.cache/huggingface && \
-    chown -R presidio:presidio /home/presidio/.cache
-
-# Download the Dutch RoBERTa model during build
-RUN .venv/bin/python -c "from transformers import AutoTokenizer, AutoModelForTokenClassification; \
-    model_name = 'pdelobelle/robbert-v2-dutch-base'; \
-    print(f'Downloading {model_name}...'); \
-    tokenizer = AutoTokenizer.from_pretrained(model_name); \
-    model = AutoModelForTokenClassification.from_pretrained(model_name); \
-    print('Model downloaded successfully!')"
 
 EXPOSE 8080
 

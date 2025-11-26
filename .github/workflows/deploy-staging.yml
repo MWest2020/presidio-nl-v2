@@ -1,22 +1,18 @@
-name: Deploy Feature to Staging
+name: Deploy to Staging
 
 on:
-  # Deploy any feature branch to staging on demand
+  push:
+    branches: [ staging ]
+  pull_request:
+    branches: [ staging ]
+    types: [ opened, synchronize, reopened ]
   workflow_dispatch:
     inputs:
-      branch:
-        description: 'Branch to deploy to staging'
-        required: true
-        default: 'feature/string-endpoints'
-        type: string
-      environment:
-        description: 'Deployment environment'
-        required: true
-        default: 'staging'
-        type: choice
-        options:
-          - staging
-          - development
+      force_deploy:
+        description: 'Force deployment even if tests fail'
+        required: false
+        default: false
+        type: boolean
 
 env:
   REGISTRY: docker.io
@@ -29,8 +25,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.branch || github.ref }}
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -73,8 +67,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.branch || github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -88,23 +80,16 @@ jobs:
       - name: Generate tags
         id: meta
         run: |
-          # Use input branch if provided, otherwise use current ref
-          BRANCH_NAME="${{ github.event.inputs.branch }}"
-          if [ -z "$BRANCH_NAME" ]; then
-            BRANCH_NAME=${GITHUB_REF#refs/heads/}
-          fi
-          
           TIMESTAMP=$(date +%Y%m%d-%H%M%S)
           SHORT_SHA=${GITHUB_SHA:0:7}
           
-          # All feature branches get staging treatment
-          CLEAN_BRANCH_NAME=$(echo "$BRANCH_NAME" | sed 's/feature\///g' | sed 's/[^a-zA-Z0-9]/-/g')
-          MAIN_TAG="staging-${CLEAN_BRANCH_NAME}-${TIMESTAMP}-${SHORT_SHA}" 
+          # Staging environment always uses staging tags
+          MAIN_TAG="staging-${TIMESTAMP}-${SHORT_SHA}"
           ALIAS_TAG="dev"
           
           echo "main_tag=${MAIN_TAG}" >> $GITHUB_OUTPUT
           echo "alias_tag=${ALIAS_TAG}" >> $GITHUB_OUTPUT
-          echo "branch=${BRANCH_NAME}" >> $GITHUB_OUTPUT
+          echo "branch=staging" >> $GITHUB_OUTPUT
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -129,8 +114,8 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add charts/openanonymiser/values.yaml
-          git commit -m "deploy: Auto-update image tag to ${MAIN_TAG} for ${BRANCH_NAME}" || exit 0
-          git push origin "${BRANCH_NAME}"
+          git commit -m "deploy: Auto-update image tag to ${MAIN_TAG} for staging" || exit 0
+          git push origin staging
 
       - name: Create deployment summary
         run: |
@@ -142,8 +127,8 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🧪 Test Cloud API:" >> $GITHUB_STEP_SUMMARY
           echo '```bash' >> $GITHUB_STEP_SUMMARY
-          echo "python test_endpoints.py https://api.openanonymiser.commonground.nu" >> $GITHUB_STEP_SUMMARY
-          echo "./test_endpoints.sh https://api.openanonymiser.commonground.nu" >> $GITHUB_STEP_SUMMARY
+          echo "python test_endpoints.py https://api.openanonymiser.accept.commonground.nu" >> $GITHUB_STEP_SUMMARY
+          echo "./test_endpoints.sh https://api.openanonymiser.accept.commonground.nu" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📊 New Endpoints:" >> $GITHUB_STEP_SUMMARY
@@ -161,8 +146,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.branch || github.ref }}
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -180,7 +163,7 @@ jobs:
       - name: Test cloud API endpoints
         run: |
           echo "🧪 Testing cloud API endpoints..."
-          python test_endpoints.py https://api.openanonymiser.commonground.nu || {
+          python test_endpoints.py https://api.openanonymiser.accept.commonground.nu || {
             echo "❌ Cloud API tests failed - deployment may still be in progress"
             echo "💡 Try testing manually in 5-10 minutes"
             exit 1
