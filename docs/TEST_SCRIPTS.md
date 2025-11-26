@@ -10,7 +10,7 @@ Two standalone test scripts for testing the new string-based `/analyze` and `/an
 uv run api.py
 
 # Run tests (in another terminal)
-python test_endpoints.py
+python tests/integration/test_endpoints.py
 ```
 
 ### Option 2: Bash Script
@@ -19,14 +19,14 @@ python test_endpoints.py
 uv run api.py
 
 # Run tests (in another terminal)
-./test_endpoints.sh
+./scripts/test_endpoints.sh
 ```
 
 ### Option 3: Test Against Remote Server
 ```bash
 # Test against specific URL
-python test_endpoints.py https://api.openanonymiser.commonground.nu
-./test_endpoints.sh https://api.openanonymiser.commonground.nu
+python tests/integration/test_endpoints.py https://api.openanonymiser.commonground.nu
+./scripts/test_endpoints.sh https://api.openanonymiser.commonground.nu
 ```
 
 ## 📋 What Gets Tested
@@ -104,7 +104,7 @@ Failed: 0
 uv run api.py &
 
 # 2. Run tests after changes
-python test_endpoints.py
+python tests/integration/test_endpoints.py
 
 # 3. Stop API
 kill %1
@@ -117,7 +117,7 @@ docker build -t openanonymiser:test .
 docker run -d -p 8081:8080 openanonymiser:test
 
 # 2. Test container
-python test_endpoints.py http://localhost:8081
+python tests/integration/test_endpoints.py http://localhost:8081
 
 # 3. Cleanup
 docker stop $(docker ps -q --filter ancestor=openanonymiser:test)
@@ -136,7 +136,7 @@ API_PID=$!
 sleep 10
 
 # Run tests
-python test_endpoints.py
+python tests/integration/test_endpoints.py
 
 # Capture exit code
 TEST_EXIT_CODE=$?
