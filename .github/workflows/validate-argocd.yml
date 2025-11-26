@@ -68,6 +68,27 @@ jobs:
           except Exception as e:
               errors.append(f'production-app: parse error: {e}')
 
+          # Validate Helm image tags per environment
+          charts = pathlib.Path('charts/openanonymiser')
+          try:
+              vals_prod = load(charts / 'values.yaml')
+              image_tag_prod = vals_prod.get('image', {}).get('tag')
+              if image_tag_prod not in ('main', 'latest'):
+                  errors.append(f'values.yaml: image.tag should be "main" or "latest", found "{image_tag_prod}"')
+          except Exception as e:
+              errors.append(f'values.yaml: parse error: {e}')
+
+          try:
+              vals_stg = load(charts / 'values-staging.yaml')
+              image_tag_stg = vals_stg.get('image', {}).get('tag')
+              if image_tag_stg != 'dev':
+                  errors.append(f'values-staging.yaml: image.tag should be "dev", found "{image_tag_stg}"')
+              pull_policy_stg = vals_stg.get('image', {}).get('pullPolicy')
+              if pull_policy_stg != 'Always':
+                  errors.append(f'values-staging.yaml: image.pullPolicy should be "Always", found "{pull_policy_stg}"')
+          except Exception as e:
+              errors.append(f'values-staging.yaml: parse error: {e}')
+
           if errors:
               print('Validation errors:')
               for e in errors:
