@@ -1,168 +1,168 @@
-# OpenAnonymiser String Endpoints Test Scripts
+# OpenAnonymiser Testscripts voor String Endpoints
 
-Two standalone test scripts for testing the new string-based `/analyze` and `/anonymize` endpoints.
+Twee standalone testscripts om de nieuwe string-endpoints `/analyze` en `/anonymize` te testen.
 
-## 🚀 Quick Start
+## 🚀 Snel starten
 
-### Option 1: Python Script (Recommended)
+### Optie 1: Python-script (aanbevolen)
 ```bash
-# Start API first
+# Start eerst de API
 uv run api.py
 
-# Run tests (in another terminal)
+# Draai tests (in een andere terminal)
 python tests/integration/test_endpoints.py
 ```
 
-### Option 2: Bash Script
+### Optie 2: Bash-script
 ```bash
-# Start API first
+# Start eerst de API
 uv run api.py
 
-# Run tests (in another terminal)
+# Draai tests (in een andere terminal)
 ./scripts/test_endpoints.sh
 ```
 
-### Option 3: Test Against Remote Server
+### Optie 3: Testen tegen een remote server
 ```bash
-# Test against specific URL
+# Test tegen specifieke URL
 python tests/integration/test_endpoints.py https://api.openanonymiser.commonground.nu
 ./scripts/test_endpoints.sh https://api.openanonymiser.commonground.nu
 ```
 
-## 📋 What Gets Tested
+## 📋 Wat wordt getest
 
-### ✅ Health Check
+### ✅ Health check
 - `GET /api/v1/health` → `{"ping": "pong"}`
 
-### ✅ Analyze Endpoint (`POST /api/v1/analyze`)
-- **Basic text analysis** - Dutch PII detection
-- **Entity filtering** - Only detect specified entity types  
-- **Engine selection** - SpaCy vs Transformers
-- **Input validation** - Empty text, unsupported languages
+### ✅ Analyze endpoint (`POST /api/v1/analyze`)
+- **Basis tekstanalyse** - Nederlandse PII-detectie
+- **Entity-filtering** - Alleen opgegeven types detecteren  
+- **Engine-keuze** - SpaCy vs Transformers
+- **Inputvalidatie** - Lege tekst, niet-ondersteunde talen
 
-### ✅ Anonymize Endpoint (`POST /api/v1/anonymize`)
-- **Basic anonymization** - Replace PII with placeholders
-- **Strategy selection** - Different anonymization methods
-- **Entity filtering** - Only anonymize specific types
-- **Input validation** - Invalid strategies
+### ✅ Anonymize endpoint (`POST /api/v1/anonymize`)
+- **Basis-anonimisering** - PII vervangen door placeholders
+- **Strategiekeuze** - Verschillende anonimiseerstrategieën
+- **Entity-filtering** - Alleen specifieke types anonimiseren
+- **Inputvalidatie** - Ongeldige strategieën
 
-### ✅ Error Handling
-- Malformed JSON requests
-- Missing required fields
-- HTTP error codes (422, 500)
+### ✅ Foutafhandeling
+- Ongeldige JSON-requests
+- Vereiste velden ontbreken
+- HTTP-foutcodes (422, 500)
 
-### ✅ Document Upload (Bonus)
-- PDF upload test (if `test.pdf` exists)
+### ✅ Document upload (bonus)
+- PDF-upload test (als `test.pdf` aanwezig is)
 
-## 📊 Output Example
+## 📊 Voorbeeld output
 
 ```
 🚀 OpenAnonymiser String Endpoints Test Suite
-Testing against: http://localhost:8080
+Testen tegen: http://localhost:8080
 
-🔍 Testing Health Check
-✅ PASS - Health endpoint
+🔍 Health check
+✅ PASS - Health endpoint werkt
 
-🔍 Testing /analyze Endpoint  
-✅ PASS - Analyze basic text
-✅ PASS - Analyze with entity filtering
-✅ PASS - Analyze with engine selection
-✅ PASS - Analyze empty text validation
-✅ PASS - Analyze unsupported language
+🔍 /analyze endpoint  
+✅ PASS - Analyse basis-tekst
+✅ PASS - Analyse met entity-filtering
+✅ PASS - Analyse met engine-keuze
+✅ PASS - Validatie lege tekst
+✅ PASS - Validatie niet-ondersteunde taal
 
-🔍 Testing /anonymize Endpoint
-✅ PASS - Anonymize basic text
-✅ PASS - Anonymize with strategy
-✅ PASS - Anonymize with entity filtering
-✅ PASS - Anonymize invalid strategy
+🔍 /anonymize endpoint
+✅ PASS - Anonimiseer basis-tekst
+✅ PASS - Anonimiseer met strategie
+✅ PASS - Anonimiseer met entity-filtering
+✅ PASS - Ongeldige strategie
 
-📊 Test Results Summary
+📊 Samenvatting testresultaten
 =================================
-Total tests: 12
-Passed: 12
-Failed: 0
+Totaal tests: 12
+Geslaagd: 12
+Gefaalde: 0
 
-🎉 All tests passed!
+🎉 Alle tests geslaagd!
 ```
 
-## 🔧 Requirements
+## 🔧 Benodigdheden
 
-### Python Script
+### Python-script
 - Python 3.6+
 - `requests` library: `pip install requests`
 
-### Bash Script  
-- Bash shell
+### Bash-script  
+- Bash-shell
 - `curl` command
-- `jq` (optional, for prettier JSON)
+- `jq` (optioneel, voor prettige JSON-weergave)
 
-## 💡 Usage Tips
+## 💡 Gebruikstips
 
-### Development Workflow
+### Development workflow
 ```bash
-# 1. Start API in development mode
+# 1. Start API in development modus
 uv run api.py &
 
-# 2. Run tests after changes
+# 2. Draai tests na wijzigingen
 python tests/integration/test_endpoints.py
 
-# 3. Stop API
+# 3. Stop de API
 kill %1
 ```
 
-### Docker Testing
+### Docker-test
 ```bash
-# 1. Build and run container
+# 1. Build en run de container
 docker build -t openanonymiser:test .
 docker run -d -p 8081:8080 openanonymiser:test
 
 # 2. Test container
 python tests/integration/test_endpoints.py http://localhost:8081
 
-# 3. Cleanup
+# 3. Opruimen
 docker stop $(docker ps -q --filter ancestor=openanonymiser:test)
 ```
 
-### CI/CD Integration
+### CI/CD-integratie
 ```bash
 #!/bin/bash
-# Add to your CI pipeline
+# Voeg toe aan je CI-pipeline
 
-# Start API in background
+# Start API op de achtergrond
 uv run api.py --env production &
 API_PID=$!
 
-# Wait for startup
+# Wacht op startup
 sleep 10
 
-# Run tests
+# Draai tests
 python tests/integration/test_endpoints.py
 
-# Capture exit code
+# Bewaar exit code
 TEST_EXIT_CODE=$?
 
-# Cleanup
+# Opruimen
 kill $API_PID
 
-# Exit with test result
+# Exit met testresultaat
 exit $TEST_EXIT_CODE
 ```
 
-## 🆚 Script Comparison
+## 🆚 Script-vergelijking
 
-| Feature | Python Script | Bash Script |
+| Eigenschap | Python-script | Bash-script |
 |---------|---------------|-------------|
-| **Cross-platform** | ✅ Windows/Mac/Linux | ❌ Unix only |
-| **JSON handling** | ✅ Native | ⚠️ String parsing |
-| **Error details** | ✅ Rich output | ✅ Basic output |
+| **Cross-platform** | ✅ Windows/Mac/Linux | ❌ Alleen Unix |
+| **JSON-afhandeling** | ✅ Native | ⚠️ String parsing |
+| **Foutdetails** | ✅ Rijke output | ✅ Basis output |
 | **Dependencies** | `requests` | `curl` |
-| **Speed** | ⚡ Fast | ⚡ Fast |
-| **Readability** | ✅ Structured | ✅ Simple |
+| **Snelheid** | ⚡ Snel | ⚡ Snel |
+| **Leesbaarheid** | ✅ Gestructureerd | ✅ Simpel |
 
-## 🚀 Exit Codes
+## 🚀 Exit-codes
 
-- `0` - All tests passed
-- `1` - Some tests failed  
-- `1` - API not available
+- `0` - Alle tests geslaagd
+- `1` - Sommige tests gefaald  
+- `1` - API niet beschikbaar
 
-Perfect for CI/CD pipelines and automated testing!
+Perfect voor CI/CD-pipelines en geautomatiseerde tests!
