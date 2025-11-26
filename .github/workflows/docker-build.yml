@@ -24,9 +24,9 @@ jobs:
         id: meta
         run: |
           if [[ $GITHUB_REF == refs/heads/main ]]; then
-            # Main branch - use latest git tag + latest
+            # Main branch - push version, latest and main
             VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.2.0")
-            TAGS="${{ env.IMAGE_NAME }}:${VERSION},${{ env.IMAGE_NAME }}:latest"
+            TAGS="${{ env.IMAGE_NAME }}:${VERSION},${{ env.IMAGE_NAME }}:latest,${{ env.IMAGE_NAME }}:main"
           elif [[ $GITHUB_REF == refs/heads/staging ]] || [[ $GITHUB_REF == refs/heads/development ]]; then
             # Staging/development branches - always dev tag
             VERSION="dev"

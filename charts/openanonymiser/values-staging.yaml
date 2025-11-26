@@ -18,7 +18,6 @@ serviceAccount:
 
 podAnnotations: {}
 
-podSecurityContext: {}
 podSecurityContext:
   fsGroup: 1000
   fsGroupChangePolicy: "OnRootMismatch"
@@ -46,14 +45,16 @@ ingress:
     nginx.ingress.kubernetes.io/enable-cors: "true"
     nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
     nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
-    # Staging: SSL disabled for easier testing
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
   hosts:
-    - host: "staging-api.openanonymiser.commonground.nu"
+    - host: "api.openanonymiser.accept.commonground.nu"
       paths:
         - path: /
           pathType: Prefix
-  tls: []  # No SSL for staging
+  tls:
+    - secretName: openanonymiser-accept-tls
+      hosts:
+        - api.openanonymiser.accept.commonground.nu
 
 resources:
   limits:

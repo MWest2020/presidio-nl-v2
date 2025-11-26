@@ -124,7 +124,7 @@ kubectl get challenges -A
 curl https://api.openanonymiser.accept.commonground.nu/api/v1/health
 
 # New string endpoints
-python test_endpoints.py https://api.openanonymiser.accept.commonground.nu
+python tests/integration/test_endpoints.py https://api.openanonymiser.accept.commonground.nu
 
 # Document upload
 curl -X POST -F "files=@test.pdf" \
@@ -137,7 +137,7 @@ curl -X POST -F "files=@test.pdf" \
 curl https://api.openanonymiser.commonground.nu/api/v1/health
 
 # Full test suite
-python test_endpoints.py https://api.openanonymiser.commonground.nu
+python tests/integration/test_endpoints.py https://api.openanonymiser.commonground.nu
 ```
 
 ## 🔄 STAP 7: DEPLOYMENT WORKFLOW
@@ -156,7 +156,7 @@ git push origin staging
 # → ArgoCD deploys to accept.commonground.nu
 
 # 3. Test staging thoroughly
-python test_endpoints.py https://api.openanonymiser.accept.commonground.nu
+python tests/integration/test_endpoints.py https://api.openanonymiser.accept.commonground.nu
 
 # 4. If staging OK → deploy to production
 git checkout main
