@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/ConductionNL/OpenAnonymiser.git
-    targetRevision: development  # ← Staging wijst naar development branch  
+    targetRevision: staging  # ← Staging wijst naar staging branch  
     path: charts/openanonymiser
     helm:
       valueFiles:
