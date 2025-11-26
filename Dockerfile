@@ -21,6 +21,9 @@ ENV UV_NO_CACHE=1
 
 # resolve from uv.lock only, no dev dependencies
 RUN uv sync --frozen --no-dev --no-cache
+ 
+# Pre-install Dutch SpaCy model used in production/staging
+RUN .venv/bin/python -m spacy download nl_core_news_md
 
 # Pre-download transformers models during build to avoid runtime download
 ENV TRANSFORMERS_CACHE=/home/presidio/.cache/transformers
