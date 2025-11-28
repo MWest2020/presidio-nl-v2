@@ -14,9 +14,9 @@ spec:
         - values-staging.yaml  # ← Use staging-specific values
       parameters:
         - name: image.tag
-          value: dev
+          value: v1.2.0
         - name: image.pullPolicy
-          value: Always
+          value: IfNotPresent
         - name: ingress.hosts[0].host
           value: api.openanonymiser.accept.commonground.nu
         - name: ingress.tls[0].secretName
