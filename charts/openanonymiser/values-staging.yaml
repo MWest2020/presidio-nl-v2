@@ -69,7 +69,7 @@ resources:
 persistence:
   enabled: true
   storageClass: "nfs"
-  size: 10Gi  # Smaller storage for staging
+  size: 25Gi  # Match existing PVC capacity to avoid resize
   # Staging data directory
   # - SQLite database (/app/data/openanonymiser.db)
   # - Test files (/app/data/temp/)
