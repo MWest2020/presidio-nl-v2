@@ -22,8 +22,9 @@ ENV UV_NO_CACHE=1
 # resolve from uv.lock only, no dev dependencies
 RUN uv sync --frozen --no-dev --no-cache
  
-# Pre-install Dutch SpaCy model used in production/staging
-RUN .venv/bin/python -m spacy download nl_core_news_md
+# Pre-install Dutch SpaCy model used in production/staging (pin to SpaCy 3.8 series)
+# Prefer direct wheel install for reproducibility; fallback to spacy download if needed.
+RUN .venv/bin/pip install -q https://github.com/explosion/spacy-models/releases/download/nl_core_news_md-3.8.0/nl_core_news_md-3.8.0-py3-none-any.whl || .venv/bin/python -m spacy download nl_core_news_md
 
 # Pre-download transformers models during build to avoid runtime download
 ENV TRANSFORMERS_CACHE=/home/presidio/.cache/transformers
