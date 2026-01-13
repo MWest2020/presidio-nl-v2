@@ -94,3 +94,8 @@ env:
 # Network policy for staging (more permissive)
 networkPolicy:
   enabled: false  # Disabled for easier testing
+
+# Staging-specific app environment overrides
+app:
+  env:
+    defaultSpacyModel: "nl_core_news_lg"
