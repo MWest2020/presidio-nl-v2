@@ -1,0 +1,92 @@
+name: Retag Docker Image (promote dev -> version/main/latest)
+
+on:
+  workflow_dispatch:
+    inputs:
+      digest:
+        description: 'Image digest to retag (sha256:...) from accept (exact image)'
+        required: true
+      version:
+        description: 'Version tag to create (e.g. v1.3.1)'
+        required: true
+        default: 'v1.3.1'
+      promote_latest:
+        description: 'Also tag as latest'
+        type: boolean
+        required: true
+        default: true
+      promote_main:
+        description: 'Also tag as main'
+        type: boolean
+        required: true
+        default: true
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: mwest2020/openanonymiser
+
+jobs:
+  retag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Pull image by digest
+        run: |
+          set -euo pipefail
+          DIGEST="${{ github.event.inputs.digest }}"
+          echo "Pulling ${REGISTRY}/${IMAGE_NAME}@${DIGEST}"
+          docker pull "${REGISTRY}/${IMAGE_NAME}@${DIGEST}"
+          ID=$(docker images --no-trunc --quiet "${REGISTRY}/${IMAGE_NAME}@${DIGEST}")
+          echo "Pulled image ID: ${ID}"
+
+      - name: Tag image to version/main/latest
+        run: |
+          set -euo pipefail
+          DIGEST="${{ github.event.inputs.digest }}"
+          VERSION="${{ github.event.inputs.version }}"
+          SRC="${REGISTRY}/${IMAGE_NAME}@${DIGEST}"
+          echo "Tagging ${SRC} -> ${IMAGE_NAME}:${VERSION}"
+          docker tag "${SRC}" "${REGISTRY}/${IMAGE_NAME}:${VERSION}"
+          if [ "${{ github.event.inputs.promote_latest }}" = "true" ]; then
+            echo "Tagging -> latest"
+            docker tag "${SRC}" "${REGISTRY}/${IMAGE_NAME}:latest"
+          fi
+          if [ "${{ github.event.inputs.promote_main }}" = "true" ]; then
+            echo "Tagging -> main"
+            docker tag "${SRC}" "${REGISTRY}/${IMAGE_NAME}:main"
+          fi
+
+      - name: Push tags
+        run: |
+          set -euo pipefail
+          VERSION="${{ github.event.inputs.version }}"
+          docker push "${REGISTRY}/${IMAGE_NAME}:${VERSION}"
+          if [ "${{ github.event.inputs.promote_latest }}" = "true" ]; then
+            docker push "${REGISTRY}/${IMAGE_NAME}:latest"
+          fi
+          if [ "${{ github.event.inputs.promote_main }}" = "true" ]; then
+            docker push "${REGISTRY}/${IMAGE_NAME}:main"
+          fi
+
+      - name: Summary
+        run: |
+          {
+            echo "### ✅ Retag complete"
+            echo ""
+            echo "- Source digest: \`${{ github.event.inputs.digest }}\`"
+            echo "- Created tags:"
+            echo "  - \`${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}\`"
+            if [ "${{ github.event.inputs.promote_latest }}" = "true" ]; then
+              echo "  - \`${{ env.IMAGE_NAME }}:latest\`"
+            fi
+            if [ "${{ github.event.inputs.promote_main }}" = "true" ]; then
+              echo "  - \`${{ env.IMAGE_NAME }}:main\`"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+

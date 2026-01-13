@@ -21,6 +21,16 @@ ENV UV_NO_CACHE=1
 
 # resolve from uv.lock only, no dev dependencies
 RUN uv sync --frozen --no-dev --no-cache
+ 
+# Pre-install Dutch SpaCy model used in production/staging (pin to SpaCy 3.8 series).
+# Use pip inside the venv and verify; force layer rebuild with ARG.
+ARG FORCE_REBUILD_MAIN="2026-01-13T12:05Z"
+RUN set -eux; echo "$FORCE_REBUILD_MAIN" >/dev/null; \
+    .venv/bin/python -m ensurepip --upgrade; \
+    .venv/bin/pip install -q \
+      "nl_core_news_md @ https://github.com/explosion/spacy-models/releases/download/nl_core_news_md-3.8.0/nl_core_news_md-3.8.0-py3-none-any.whl" \
+    || .venv/bin/python -m spacy download nl_core_news_md; \
+    .venv/bin/python -c "import spacy; spacy.load('nl_core_news_md'); print('nl_core_news_md installed')"
 
 # Pre-download transformers models during build to avoid runtime download
 ENV TRANSFORMERS_CACHE=/home/presidio/.cache/transformers
@@ -30,9 +40,9 @@ ENV HF_HOME=/home/presidio/.cache/huggingface
 RUN mkdir -p /home/presidio/.cache/transformers /home/presidio/.cache/huggingface && \
     chown -R presidio:presidio /home/presidio/.cache
 
-# Download the Dutch RoBERTa model in a separate layer
-# Adding a specific model version helps with caching
-RUN MODEL_NAME="pdelobelle/robbert-v2-dutch-base" && \
+# Download a Dutch NER model for transformers in a separate layer
+# Using a model with a token-classification head (NER)
+RUN MODEL_NAME="wietsedv/bert-base-dutch-cased-ner" && \
     echo "Downloading ${MODEL_NAME}..." && \
     .venv/bin/python -c "from transformers import AutoTokenizer, AutoModelForTokenClassification; \
     tokenizer = AutoTokenizer.from_pretrained('${MODEL_NAME}', cache_dir='${TRANSFORMERS_CACHE}'); \
