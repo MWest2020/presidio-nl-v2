@@ -24,7 +24,8 @@ RUN uv sync --frozen --no-dev --no-cache
  
 # Pre-install Dutch SpaCy model used in production/staging (pin to SpaCy 3.8 series).
 # Use uv pip (bundled) to avoid relying on pip availability in the venv, then verify.
-RUN set -eux; \
+ARG FORCE_REBUILD_MAIN="2026-01-13T11:59Z"
+RUN set -eux; echo "$FORCE_REBUILD_MAIN" >/dev/null; \
     uv pip install --python .venv/bin/python --no-cache \
       "nl_core_news_md @ https://github.com/explosion/spacy-models/releases/download/nl_core_news_md-3.8.0/nl_core_news_md-3.8.0-py3-none-any.whl" \
     || .venv/bin/python -m spacy download nl_core_news_md; \
