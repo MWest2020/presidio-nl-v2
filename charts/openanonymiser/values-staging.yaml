@@ -98,4 +98,5 @@ networkPolicy:
 # Staging-specific app environment overrides
 app:
   env:
-    defaultSpacyModel: "nl_core_news_lg"
+    defaultSpacyModel: "nl_core_news_md"
+    defaultTransformersModel: "wietsedv/bert-base-dutch-cased-ner"

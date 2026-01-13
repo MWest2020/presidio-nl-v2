@@ -38,9 +38,9 @@ ENV HF_HOME=/home/presidio/.cache/huggingface
 RUN mkdir -p /home/presidio/.cache/transformers /home/presidio/.cache/huggingface && \
     chown -R presidio:presidio /home/presidio/.cache
 
-# Download the Dutch RoBERTa model in a separate layer
-# Adding a specific model version helps with caching
-RUN MODEL_NAME="pdelobelle/robbert-v2-dutch-base" && \
+# Download a Dutch NER model for transformers in a separate layer
+# Using a model with a token-classification head (NER)
+RUN MODEL_NAME="wietsedv/bert-base-dutch-cased-ner" && \
     echo "Downloading ${MODEL_NAME}..." && \
     .venv/bin/python -c "from transformers import AutoTokenizer, AutoModelForTokenClassification; \
     tokenizer = AutoTokenizer.from_pretrained('${MODEL_NAME}', cache_dir='${TRANSFORMERS_CACHE}'); \
