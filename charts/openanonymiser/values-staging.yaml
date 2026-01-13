@@ -38,6 +38,8 @@ ingress:
   enabled: true
   className: nginx
   annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
     nginx.ingress.kubernetes.io/proxy-body-size: "100m"
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
@@ -67,7 +69,7 @@ resources:
 persistence:
   enabled: true
   storageClass: "nfs"
-  size: 10Gi  # Smaller storage for staging
+  size: 25Gi  # Match existing PVC capacity to avoid resize
   # Staging data directory
   # - SQLite database (/app/data/openanonymiser.db)
   # - Test files (/app/data/temp/)
@@ -92,3 +94,9 @@ env:
 # Network policy for staging (more permissive)
 networkPolicy:
   enabled: false  # Disabled for easier testing
+
+# Staging-specific app environment overrides
+app:
+  env:
+    defaultSpacyModel: "nl_core_news_md"
+    defaultTransformersModel: "wietsedv/bert-base-dutch-cased-ner"

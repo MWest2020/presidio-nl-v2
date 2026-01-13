@@ -73,6 +73,15 @@ Tip: Je kunt entiteiten leeg laten voor “alles”, of expliciet filteren.
 ```
 Let op: Presidio’s pattern recognizers (zoals IBAN, e-mail, telefoon) gebruiken intern SpaCy; de NER-laag kan wisselen.
 
+#### Welke modellen voor welke entiteiten?
+- Pattern recognizers (regelgebaseerd, via Presidio):
+  - `IBAN`, `PHONE_NUMBER`, `EMAIL`
+- NLP (NER – SpaCy of Transformers, afhankelijk van `nlp_engine`):
+  - `PERSON`, `LOCATION`, `ORGANIZATION`
+  - `ADDRESS`: alleen via NLP (best‑effort), geen pattern‑recognizer; dekking is model‑afhankelijk
+
+Samengevat: gebruik patterns voor “vormvaste” entiteiten (IBAN/telefoon/e‑mail) en NLP voor “vrije‑tekst” entiteiten (persoon/locatie/organisatie/adres).
+
 ### Voorbeeld payloads (Swagger)
 - Analyze minimal:
 ```json

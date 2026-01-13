@@ -60,13 +60,60 @@ def test_anonymize_text() -> None:
 
 
 @pytest.mark.integration
+def test_anonymize_text_single_entity() -> None:
+    base = get_base_url()
+    # Text contains an IBAN and an email; only anonymize IBAN
+    payload = {
+        "text": "Contact: jan.jansen@example.com. IBAN: NL91ABNA0417164300.",
+        "language": "nl",
+        "entities": ["IBAN"],
+        "anonymization_strategy": "replace",
+    }
+    resp = requests.post(f"{base}/api/v1/anonymize", json=payload, timeout=60)
+    _assert_ok(resp)
+    data = resp.json()
+    assert data["original_text"] != data["anonymized_text"]
+    assert isinstance(data.get("entities_found", []), list)
+
+
+@pytest.mark.integration
+def test_anonymize_text_all_entities() -> None:
+    base = get_base_url()
+    payload = {
+        "text": "Jan woont in Amsterdam, tel 0612345678, mail jan@example.com, IBAN NL91ABNA0417164300.",
+        "language": "nl",
+        "entities": [
+            "PERSON",
+            "EMAIL",
+            "PHONE_NUMBER",
+            "IBAN",
+            "ADDRESS",
+            "LOCATION",
+            "ORGANIZATION",
+        ],
+        "anonymization_strategy": "replace",
+    }
+    resp = requests.post(f"{base}/api/v1/anonymize", json=payload, timeout=60)
+    _assert_ok(resp)
+    data = resp.json()
+    assert data["original_text"] != data["anonymized_text"]
+    assert isinstance(data.get("entities_found", []), list)
+
+
+@pytest.mark.integration
 def test_document_flow_upload_anonymize_download(tmp_path: Path) -> None:
     base = get_base_url()
 
-    # Use bundled test.pdf if present, else skip
-    repo_pdf = Path("test.pdf")
-    if not repo_pdf.exists():
-        pytest.skip("test.pdf not found in repo root")
+    # Prefer new mock test file; fallback to legacy test.pdf
+    candidates = [
+        Path("tests") / "mock_persoonsgegevens.pdf",
+        Path("test.pdf"),
+    ]
+    repo_pdf = next((p for p in candidates if p.exists()), None)
+    if not repo_pdf:
+        pytest.skip(
+            "No test PDF found (looked for tests/mock_persoonsgegevens.pdf and test.pdf)"
+        )
 
     # 1) Upload
     with repo_pdf.open("rb") as fh:
@@ -75,10 +122,26 @@ def test_document_flow_upload_anonymize_download(tmp_path: Path) -> None:
             f"{base}/api/v1/documents/upload", files=files, timeout=120
         )
     _assert_ok(resp)
-    up = resp.json()
+
+    # Some proxies can return text/plain on errors; ensure JSON here
+    try:
+        up = resp.json()
+    except Exception as exc:  # pragma: no cover
+        raise AssertionError(
+            f"Upload response is not JSON: {resp.text[:200]} ... ({exc})"
+        )
+
     assert "files" in up and isinstance(up["files"], list) and len(up["files"]) >= 1
     file_id = up["files"][0]["id"]
     assert file_id
+
+    # 1b) Metadata (met PII entiteiten)
+    meta = requests.get(
+        f"{base}/api/v1/documents/{file_id}/metadata",
+        params={"get_pii_entities": True},
+        timeout=60,
+    )
+    _assert_ok(meta)
 
     # 2) Anonymize
     anon_payload = {
@@ -95,13 +158,19 @@ def test_document_flow_upload_anonymize_download(tmp_path: Path) -> None:
     )
     _assert_ok(resp)
     anon = resp.json()
-    assert anon.get("status") in {"ok", "success", "completed"}
+    status_text = str(anon.get("status", "")).lower()
+    assert status_text.startswith(("ok", "success", "completed"))
 
     # Optional delay if processing is async in some environments
     time.sleep(1)
 
     # 3) Download
-    out_pdf = tmp_path / "output.pdf"
+    # Save anonymized result into repo tests/ directory for inspection
+    tests_dir = Path("tests")
+    tests_dir.mkdir(parents=True, exist_ok=True)
+    base_name = Path(str(repo_pdf)).stem  # original name without extension
+    out_pdf = tests_dir / f"{base_name}(geanonimiseerd).pdf"
+
     resp = requests.get(f"{base}/api/v1/documents/{file_id}/download", timeout=120)
     _assert_ok(resp)
     # Some deployments may return FileResponse (binary) or a JSON envelope (rare).

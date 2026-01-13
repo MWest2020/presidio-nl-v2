@@ -34,6 +34,13 @@ Na opstarten zijn de services bereikbaar op:
 - **API**: [http://localhost:8001/api/v1/docs](http://localhost:8001/api/v1/docs) (Swagger UI)
 - **UI**: [http://localhost:8002](http://localhost:8002) (Web interface)
 
+### Welke modellen voor welke entiteiten?
+- Pattern recognizers (regelgebaseerd via Presidio): `IBAN`, `PHONE_NUMBER`, `EMAIL`
+- NLP (NER – SpaCy of Transformers): `PERSON`, `LOCATION`, `ORGANIZATION`
+- `ADDRESS`: via NLP (best‑effort), geen pattern‑recognizer; dekking is model‑afhankelijk
+
+Kies patterns voor “vormvaste” entiteiten, en NLP voor “vrije‑tekst” entiteiten.
+
 ### 3. Individuele Docker containers
 
 Bouw het backend image:
