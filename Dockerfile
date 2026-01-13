@@ -28,9 +28,7 @@ RUN set -eux; \
     uv pip install --python .venv/bin/python --no-cache \
       "nl_core_news_md @ https://github.com/explosion/spacy-models/releases/download/nl_core_news_md-3.8.0/nl_core_news_md-3.8.0-py3-none-any.whl" \
     || .venv/bin/python -m spacy download nl_core_news_md; \
-    .venv/bin/python - <<'PY' \
-import spacy; spacy.load("nl_core_news_md"); print("nl_core_news_md installed") \
-PY
+    .venv/bin/python -c "import spacy; spacy.load('nl_core_news_md'); print('nl_core_news_md installed')"
 
 # Pre-download transformers models during build to avoid runtime download
 ENV TRANSFORMERS_CACHE=/home/presidio/.cache/transformers
