@@ -38,6 +38,25 @@
 
 ---
 
+## Branching strategy
+
+Gebruik consistente, betekenisvolle branchnamen. Richtlijnen:
+
+- `feature/<onderwerp>` – nieuwe functionaliteit
+- `fix/<issue-of-bug>` – bugfixes (niet-urgent)
+- `hotfix/<korte-omschrijving>-YYYY-MM-DD` – urgente productiefix (infra/helm e.d.)
+- `docs/<onderwerp>` – documentatie-updates
+- `tests/<onderwerp>` – test(s) en testinfrastructuur
+- `release/vX.Y.Z` – release-voorbereiding
+
+PR-regels:
+
+- PR’s naar `main` alleen vanuit `development` of `staging` (of een expliciete `hotfix/*` indien noodzakelijk).
+- Vereist: groene CI (lint, typecheck, tests) vóór merge.
+- Infra/Helm wijzigingen altijd via een aparte `hotfix/*` of `fix/*` branch met duidelijke titel en beschrijving.
+
+---
+
 **Voorbeeld workflow voor contributors:**
 
 1. Fork & clone de repo.

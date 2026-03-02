@@ -147,7 +147,7 @@ async def deanonymize_document(
 @documents_router.get("/{file_id}/metadata", response_model=DocumentDto)
 async def get_document_metadata(
     file_id: str,
-    get_pii_entities: bool = False,
+    details: bool = False,
     db: Session = Depends(get_db),
     # username: str = Depends(get_user),
 ) -> DocumentDto:
@@ -159,9 +159,43 @@ async def get_document_metadata(
 
     tags = [DocumentTagDto(id=str(tag.id), name=str(tag.name)) for tag in doc.tags]
 
-    if get_pii_entities:
-        text = pdf_xmp.extract_text_from_pdf(Path(doc.source_path))
-        _, unique_entities = await pdf_xmp.extract_unique_entities(text=text)
+    if details:
+        # Try to use stored PII entities first
+        unique_entities = []
+        if doc.pii_entities:
+            try:
+                import json
+
+                stored_entities = json.loads(doc.pii_entities)
+                # Convert to unique entities format (entity_type and text only)
+                seen = set()
+                for entity in stored_entities:
+                    key = (entity.get("entity_type", ""), entity.get("text", ""))
+                    if (
+                        key not in seen
+                        and entity.get("entity_type")
+                        and entity.get("text")
+                    ):
+                        unique_entities.append(
+                            {
+                                "entity_type": entity["entity_type"],
+                                "text": entity["text"],
+                            }
+                        )
+                        seen.add(key)
+            except (json.JSONDecodeError, KeyError) as e:
+                logger.warning(
+                    f"Failed to parse stored PII entities for document {file_id}: {e}"
+                )
+
+        # Fallback: re-analyze if no stored entities found
+        if not unique_entities:
+            try:
+                text = pdf_xmp.extract_text_from_pdf(Path(doc.source_path))
+                _, unique_entities = await pdf_xmp.extract_unique_entities(text=text)
+            except Exception as e:
+                logger.warning(f"Failed to re-analyze document {file_id}: {e}")
+                unique_entities = []
     else:
         unique_entities = []
 

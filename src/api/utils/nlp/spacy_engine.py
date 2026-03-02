@@ -14,7 +14,19 @@ class SpacyEngine(NLPEngine):
 
     def __init__(self, model_name: str = settings.DEFAULT_SPACY_MODEL) -> None:
         self.model_name = model_name
-        self.nlp: spacy.language.Language = spacy.load(model_name)
+        try:
+            self.nlp: spacy.language.Language = spacy.load(model_name)
+        except Exception:
+            # Fallback: probeer model on-the-fly te installeren (handig voor staging)
+            try:
+                from spacy.cli import download as spacy_download
+
+                spacy_download(model_name)
+                self.nlp = spacy.load(model_name)  # type: ignore[assignment]
+            except Exception as e:  # pragma: no cover
+                raise RuntimeError(
+                    f"SpaCy model '{model_name}' kon niet worden geladen/geïnstalleerd: {e}"
+                )
 
     def analyze(
         self,

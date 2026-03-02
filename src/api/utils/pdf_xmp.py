@@ -171,6 +171,11 @@ async def upload_and_analyze_files(
 
         entities, unique = await extract_unique_entities(text=text)
 
+        # Convert entities to JSON string for database storage
+        import json
+
+        entities_json = json.dumps(entities) if entities else None
+
         db_document = create_document(
             db,
             id=file_id,
@@ -178,6 +183,7 @@ async def upload_and_analyze_files(
             content_type=file.content_type or "application/pdf",
             source_path=str(source_path),
             anonymized_path=None,
+            pii_entities=entities_json,
         )
 
         db_tags = []

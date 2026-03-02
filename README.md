@@ -4,6 +4,12 @@ Presidio-NL is een modulaire API-service voor het detecteren en anonimiseren van
 
 ## Installatie & Gebruik
 
+Zie ook:
+- Gebruikshandleiding met Swagger-stappen: `docs/use-cases.md`
+- API voorbeelden (curl): `docs/api-examples.md`
+- Productie Swagger: https://api.openanonymiser.commonground.nu/api/v1/docs
+- Staging Swagger: https://api.openanonymiser.accept.commonground.nu/api/v1/docs
+
 ### 1. Lokaal draaien (voor ontwikkeling)
 
 Installeer dependencies en start de API:
@@ -27,6 +33,13 @@ docker-compose up -d
 Na opstarten zijn de services bereikbaar op:
 - **API**: [http://localhost:8001/api/v1/docs](http://localhost:8001/api/v1/docs) (Swagger UI)
 - **UI**: [http://localhost:8002](http://localhost:8002) (Web interface)
+
+### Welke modellen voor welke entiteiten?
+- Pattern recognizers (regelgebaseerd via Presidio): `IBAN`, `PHONE_NUMBER`, `EMAIL`
+- NLP (NER – SpaCy of Transformers): `PERSON`, `LOCATION`, `ORGANIZATION`
+- `ADDRESS`: via NLP (best‑effort), geen pattern‑recognizer; dekking is model‑afhankelijk
+
+Kies patterns voor “vormvaste” entiteiten, en NLP voor “vrije‑tekst” entiteiten.
 
 ### 3. Individuele Docker containers
 
@@ -126,3 +139,17 @@ kubectl create secret generic openanonymiser-secrets \
 2. **TLS**: Enable TLS in ingress configuratie
 
 3. **Monitoring**: Health checks zijn al geconfigureerd op `/health`
+
+### 5. Testen (pytest)
+
+Gebruik de nieuwe use-case tests in `tests/test_usecases.py`. Stel een BASE URL in of laat default (localhost:8080).
+
+```bash
+# Tegen lokale server
+pytest -q -k usecases
+
+# Tegen staging of productie
+OPENANONYMISER_BASE_URL="https://api.openanonymiser.accept.commonground.nu" pytest -q -k usecases
+# of
+OPENANONYMISER_BASE_URL="https://api.openanonymiser.commonground.nu" pytest -q -k usecases
+```

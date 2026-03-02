@@ -18,7 +18,9 @@ serviceAccount:
 
 podAnnotations: {}
 
-podSecurityContext: {}
+podSecurityContext:
+  fsGroup: 1000
+  fsGroupChangePolicy: "OnRootMismatch"
 
 securityContext:
   capabilities:
@@ -36,6 +38,8 @@ ingress:
   enabled: true
   className: nginx
   annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
     nginx.ingress.kubernetes.io/proxy-body-size: "100m"
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
@@ -43,14 +47,16 @@ ingress:
     nginx.ingress.kubernetes.io/enable-cors: "true"
     nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
     nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
-    # Staging: SSL disabled for easier testing
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
   hosts:
-    - host: "staging-api.openanonymiser.commonground.nu"
+    - host: "api.openanonymiser.accept.commonground.nu"
       paths:
         - path: /
           pathType: Prefix
-  tls: []  # No SSL for staging
+  tls:
+    - secretName: openanonymiser-accept-tls
+      hosts:
+        - api.openanonymiser.accept.commonground.nu
 
 resources:
   limits:
@@ -63,7 +69,7 @@ resources:
 persistence:
   enabled: true
   storageClass: "nfs"
-  size: 10Gi  # Smaller storage for staging
+  size: 25Gi  # Match existing PVC capacity to avoid resize
   # Staging data directory
   # - SQLite database (/app/data/openanonymiser.db)
   # - Test files (/app/data/temp/)
@@ -88,3 +94,9 @@ env:
 # Network policy for staging (more permissive)
 networkPolicy:
   enabled: false  # Disabled for easier testing
+
+# Staging-specific app environment overrides
+app:
+  env:
+    defaultSpacyModel: "nl_core_news_md"
+    defaultTransformersModel: "wietsedv/bert-base-dutch-cased-ner"

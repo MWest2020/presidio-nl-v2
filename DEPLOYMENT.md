@@ -47,7 +47,7 @@ git push origin main
 ## 🎯 Current Workflow Status
 
 ### ✅ **Working Now:**
-- Local testing: `python test_endpoints.py`
+- Local testing: `python tests/integration/test_endpoints.py`
 - Docker testing: Container builds and tests pass
 - Auto-tagging: `dev` tag created on successful tests
 - Manual staging deployment: Available via GitHub Actions
@@ -93,20 +93,20 @@ mwest2020/openanonymiser:latest                # Latest production
 ### Local Testing
 ```bash
 uv run api.py &
-python test_endpoints.py
-./test_endpoints.sh
+python tests/integration/test_endpoints.py
+./scripts/test_endpoints.sh
 ```
 
 ### Cloud Testing
 ```bash
-python test_endpoints.py https://api.openanonymiser.commonground.nu
-./test_endpoints.sh https://api.openanonymiser.commonground.nu
+python tests/integration/test_endpoints.py https://api.openanonymiser.commonground.nu
+./scripts/test_endpoints.sh https://api.openanonymiser.commonground.nu
 ```
 
 ### Docker Testing
 ```bash
 docker run -d -p 8081:8080 mwest2020/openanonymiser:dev
-python test_endpoints.py http://localhost:8081
+python tests/integration/test_endpoints.py http://localhost:8081
 ```
 
 ## 🔧 Manual Cluster Operations

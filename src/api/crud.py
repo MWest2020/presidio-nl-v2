@@ -123,6 +123,7 @@ def create_document(
     content_type: str,
     source_path: str,
     anonymized_path: Optional[str] = None,
+    pii_entities: Optional[str] = None,
 ) -> Document:
     """Create a new document."""
     db_document = Document(
@@ -131,6 +132,7 @@ def create_document(
         content_type=content_type,
         source_path=source_path,
         anonymized_path=anonymized_path,
+        pii_entities=pii_entities,
     )
     db.add(db_document)
     db.commit()

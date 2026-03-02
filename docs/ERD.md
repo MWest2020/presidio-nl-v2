@@ -1,54 +1,54 @@
-# OpenAnonymiser Entity Relationship Diagram (ERD)
+# OpenAnonymiser Entiteit-Relatie Diagram (ERD)
 
-This document describes the relational database schema for persistent storage of documents, tags, and anonymization events.  
-**Note:** PII entities are not stored in the database for privacy reasons; they are processed in-memory and encoded/encrypted in the PDF metadata.
+Dit document beschrijft het relationele databasemodel voor het opslaan van documenten, tags en anonimiseer-gebeurtenissen.  
+**Let op:** PII-entiteiten worden om privacyredenen niet in de database opgeslagen; deze worden in-memory verwerkt en versleuteld/opgenomen in de PDF-metadata.
 
 ---
 
-## Tables
+## Tabellen
 
 ### documents
 
-| Column Name      | Type         | Description                        |
-|------------------|--------------|------------------------------------|
-| id               | VARCHAR(32)  | Primary key (UUID hex)             |
-| filename         | TEXT         | Original file name                 |
-| content_type     | TEXT         | MIME type                          |
-| uploaded_at      | TIMESTAMP    | Upload datetime                    |
-| source_path      | TEXT         | Path to source file                |
-| anonymized_path  | TEXT         | Path to anonymized file (nullable) |
+| Kolomnaam         | Type         | Omschrijving                               |
+|-------------------|--------------|--------------------------------------------|
+| id                | VARCHAR(32)  | Primaire sleutel (UUID hex)                |
+| filename          | TEXT         | Originele bestandsnaam                     |
+| content_type      | TEXT         | MIME-type                                  |
+| uploaded_at       | TIMESTAMP    | Uploaddatum                                |
+| source_path       | TEXT         | Pad naar bronbestand                       |
+| anonymized_path   | TEXT         | Pad naar geanonimiseerd bestand (optioneel) |
 
 ---
 
 ### tags
 
-| Column Name      | Type         | Description                        |
-|------------------|--------------|------------------------------------|
-| id               | VARCHAR(32)  | Primary key (UUID hex)             |
-| document_id      | VARCHAR(32)  | FK to documents.id                 |
-| name             | TEXT         | Tag name                           |
+| Kolomnaam         | Type         | Omschrijving                   |
+|-------------------|--------------|--------------------------------|
+| id                | VARCHAR(32)  | Primaire sleutel (UUID hex)    |
+| document_id       | VARCHAR(32)  | FK naar documents.id           |
+| name              | TEXT         | Naam van de tag                |
 
 ---
 
 ### anonymization_events
 
-| Column Name      | Type         | Description                        |
-|------------------|--------------|------------------------------------|
-| id               | SERIAL       | Primary key                        |
-| document_id      | VARCHAR(32)  | FK to documents.id                 |
-| anonymized_at    | TIMESTAMP    | When anonymized                    |
-| time_taken       | INTEGER      | Time taken (seconds)               |
-| status           | TEXT         | Status text                        |
+| Kolomnaam         | Type         | Omschrijving                         |
+|-------------------|--------------|--------------------------------------|
+| id                | SERIAL       | Primaire sleutel                     |
+| document_id       | VARCHAR(32)  | FK naar documents.id                 |
+| anonymized_at     | TIMESTAMP    | Moment van anonimisering             |
+| time_taken        | INTEGER      | Benodigde tijd (seconden)            |
+| status            | TEXT         | Statustekst                          |
 
 ---
 
-## Relationships
+## Relaties
 
 - **documents** 1---* **tags**  
-  Each document can have multiple tags.
+  Elk document kan meerdere tags hebben.
 
 - **documents** 1---* **anonymization_events**  
-  Each document can have multiple anonymization events (audit trail).
+  Elk document kan meerdere anonimiseer-gebeurtenissen hebben (audit trail).
 
 ---
 
